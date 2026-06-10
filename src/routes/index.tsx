@@ -367,18 +367,21 @@ function Solucoes() {
       t: "Korthex Executivo",
       r: "Individual",
       d: "Mentoria direta e privada com o fundador ou C-Level. Identidade, decisão, postura, sucessão e brand persona.",
+      to: "/korthex-executivo",
     },
     {
       n: "II",
       t: "Korthex Liderança",
       r: "Individual / Grupos",
       d: "Desenvolvimento de lideranças capazes de sustentar cultura, formar autonomia e transformar responsabilidade individual em capacidade organizacional.",
+      to: "/lideranca",
     },
     {
       n: "III",
       t: "Korthex Performance",
       r: "Times / Setores",
       d: "Desenvolvimento de equipes, setores e profissionais através da comunicação, gestão das emoções e alinhamento comportamental que sustentam performance consistente.",
+      to: "/performance",
     },
   ];
 
@@ -419,13 +422,13 @@ function Solucoes() {
                 {p.r}
               </div>
               <div className="col-span-12 md:col-span-2 md:text-right">
-                <a
-                  href="#cta"
+                <Link
+                  to={p.to}
                   className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-foreground/70 hover:text-primary transition-colors border-b border-foreground/20 hover:border-primary pb-1"
                 >
                   Conheça o programa
                   <span className="transition-transform group-hover:translate-x-0.5">→</span>
-                </a>
+                </Link>
               </div>
             </div>
           ))}
