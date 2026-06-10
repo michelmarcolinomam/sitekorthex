@@ -243,7 +243,7 @@ function Footer() {
   );
 }
 
-export function ManifestoPage() {
+function ManifestoPage() {
   return (
     <main className="bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground min-h-screen">
       <Header />

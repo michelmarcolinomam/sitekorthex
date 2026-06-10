@@ -28,7 +28,7 @@ export const Route = createFileRoute("/korthex-executivo")({
 // Substituir pelo ID real do vídeo quando disponível.
 const YOUTUBE_ID = "dQw4w9WgXcQ";
 
-export function KorthexExecutivoPage() {
+function KorthexExecutivoPage() {
   return (
     <main className="bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground min-h-screen">
       {/* Header */}

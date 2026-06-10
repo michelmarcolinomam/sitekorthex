@@ -291,11 +291,11 @@ function Etapas() {
               className="group border-t border-border py-16 md:py-24"
             >
               {/* Cabeça da etapa */}
-              <div className="flex items-start gap-6">
+              <div className="flex items-baseline gap-6">
                 <span className="text-display text-5xl text-primary/30 group-hover:text-primary transition-colors leading-none shrink-0">
                   {e.num}
                 </span>
-                <div className="pt-1">
+                <div>
                   <p className="text-[10px] uppercase tracking-[0.3em] text-foreground/40 mb-3">
                     Etapa
                   </p>
@@ -586,7 +586,7 @@ function Footer() {
   );
 }
 
-export function MetodoPage() {
+function MetodoPage() {
   return (
     <main className="bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground min-h-screen">
       <Header />

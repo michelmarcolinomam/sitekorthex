@@ -266,7 +266,7 @@ function ModalidadeIcon({ nome }: { nome: string }) {
 
 
 
-export function LiderancaPage() {
+function LiderancaPage() {
   return (
     <main className="bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground min-h-screen">
       <Header />

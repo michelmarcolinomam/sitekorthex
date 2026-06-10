@@ -414,7 +414,7 @@ const modalidades = [
    PÁGINA
    ───────────────────────────────────────────────────────────── */
 
-export function PerformancePage() {
+function PerformancePage() {
   return (
     <main className="bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground min-h-screen">
       <Header />
