@@ -32,20 +32,22 @@ function KorthexLogo({ className = "h-6" }: { className?: string }) {
 export const Route = createFileRoute("/performance")({
   head: () => ({
     meta: [
-      { title: "Korthex Performance — Korthex" },
+      { title: "Korthex Performance — Desenvolvimento de Equipes" },
       {
         name: "description",
         content:
           "Korthex Performance: seis treinamentos que desenvolvem capacidades emocionais, comportamentais e relacionais para fortalecer pessoas, equipes e resultados.",
       },
-      { property: "og:title", content: "Korthex Performance — Korthex" },
+      { property: "og:title", content: "Korthex Performance — Desenvolvimento de Equipes" },
       {
         property: "og:description",
         content:
           "Seis treinamentos. Seis transformações. Capacidades humanas que impactam diretamente a produtividade e a cultura das equipes.",
       },
       { property: "og:type", content: "article" },
+      { property: "og:url", content: "https://korthex.com.br/performance" },
     ],
+    links: [{ rel: "canonical", href: "https://korthex.com.br/performance" }],
   }),
   component: PerformancePage,
 });
