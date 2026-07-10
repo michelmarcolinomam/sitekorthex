@@ -32,7 +32,7 @@ function KorthexLogo({ className = "h-6" }: { className?: string }) {
 export const Route = createFileRoute("/metodo")({
   head: () => ({
     meta: [
-      { title: "O Método Korthex — Metodologia em 6 Etapas" },
+      { title: "O Método Korthex — Desenvolvimento de Liderança em 6 Etapas" },
       {
         name: "description",
         content:
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/metodo")({
       },
       {
         property: "og:title",
-        content: "O Método Korthex — Metodologia em 6 Etapas",
+        content: "O Método Korthex — Desenvolvimento de Liderança em 6 Etapas",
       },
       {
         property: "og:description",
@@ -48,7 +48,9 @@ export const Route = createFileRoute("/metodo")({
           "Uma arquitetura comportamental estratégica em seis etapas. Conheça o método Korthex em profundidade.",
       },
       { property: "og:type", content: "article" },
+      { property: "og:url", content: "https://korthex.com.br/metodo" },
     ],
+    links: [{ rel: "canonical", href: "https://korthex.com.br/metodo" }],
   }),
   component: MetodoPage,
 });
