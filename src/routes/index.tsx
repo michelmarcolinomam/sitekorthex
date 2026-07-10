@@ -10,20 +10,22 @@ export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: "Korthex — Inteligência e Desenvolvimento" },
+      { title: "Korthex — Desenvolvimento de Líderes e Mentoria Executiva" },
       {
         name: "description",
         content:
-          "Korthex desenvolve a inteligência organizacional de executivos, líderes e empresas que decidem deixar de operar no improviso.",
+          "Mentoria executiva e desenvolvimento de lideranças para fundadores, executivos e equipes. Método Korthex: maturidade que sustenta o crescimento.",
       },
-      { property: "og:title", content: "Korthex — Inteligência e Desenvolvimento" },
+      { property: "og:url", content: "https://korthex.com.br/" },
+      { property: "og:title", content: "Korthex — Desenvolvimento de Líderes e Mentoria Executiva" },
       {
         property: "og:description",
         content:
-          "Uma metodologia silenciosa para transformar comportamento, decisão e estrutura organizacional.",
+          "Mentoria executiva e desenvolvimento de lideranças para fundadores, executivos e equipes.",
       },
       { property: "og:type", content: "website" },
     ],
+    links: [{ rel: "canonical", href: "https://korthex.com.br/" }],
   }),
 });
 
@@ -112,7 +114,7 @@ function Hero() {
       {/* Hero copy + action chips */}
       <div className="absolute inset-0 z-10 flex items-center px-6 md:px-12 pt-20">
         <div className="mx-auto max-w-[1400px] w-full">
-          <h2
+          <h1
             className="text-display text-foreground max-w-[16ch]"
             style={{
               fontSize: "clamp(2.25rem, 5.4vw, 5.5rem)",
@@ -126,7 +128,7 @@ function Hero() {
             <span className="italic font-serif normal-case text-primary">
               dentro de si.
             </span>
-          </h2>
+          </h1>
 
           <div className="mt-10 flex flex-wrap gap-3">
             {[
