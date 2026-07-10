@@ -32,20 +32,22 @@ function KorthexLogo({ className = "h-6" }: { className?: string }) {
 export const Route = createFileRoute("/manifesto")({
   head: () => ({
     meta: [
-      { title: "Manifesto — Korthex" },
+      { title: "Manifesto Korthex — Liderança, Maturidade e Decisão" },
       {
         name: "description",
         content:
           "O manifesto Korthex: o que acreditamos sobre liderança, decisão, maturidade e desenvolvimento organizacional.",
       },
-      { property: "og:title", content: "Manifesto — Korthex" },
+      { property: "og:title", content: "Manifesto Korthex — Liderança, Maturidade e Decisão" },
       {
         property: "og:description",
         content:
           "O manifesto Korthex: o que acreditamos sobre liderança, decisão, maturidade e desenvolvimento organizacional.",
       },
       { property: "og:type", content: "article" },
+      { property: "og:url", content: "https://korthex.com.br/manifesto" },
     ],
+    links: [{ rel: "canonical", href: "https://korthex.com.br/manifesto" }],
   }),
   component: ManifestoPage,
 });
