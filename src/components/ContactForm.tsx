@@ -6,10 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 /**
  * Formulário de contato — Korthex
  *
- * ⚠️ ENVIO SIMULADO (mock).
- * A função `enviarContato` abaixo apenas simula uma requisição de rede.
- * Para conectar a um serviço real, substitua o corpo de `enviarContato`
- * pela chamada ao seu provedor. Exemplos comentados ao final do arquivo.
+ * Envio real via Web3Forms (https://web3forms.com).
+ * Os leads são entregues no e-mail associado à access_key abaixo.
+ * No envio bem-sucedido, dispara o evento de conversão `generate_lead`
+ * (GA4 + Google Ads via gtag) para medição de leads reais.
  */
 
 const schema = z.object({
@@ -31,17 +31,42 @@ const VAZIO: FormData = {
   mensagem: "",
 };
 
+// Chave de acesso do Web3Forms — entrega os leads por e-mail.
+const WEB3FORMS_ACCESS_KEY = "af71bff1-67bb-4d4d-bbc0-2449dcf1516f";
+
 // ─────────────────────────────────────────────────────────────
-// ENVIO SIMULADO — troque por um serviço real depois (ver rodapé)
+// ENVIO REAL via Web3Forms
 async function enviarContato(dados: FormData): Promise<void> {
-  // Simula latência de rede de ~1.2s
-  await new Promise((r) => setTimeout(r, 1200));
-  // Por enquanto, apenas registra no console do navegador.
-  console.log("[Korthex] Diagnóstico solicitado (simulado):", dados);
-  // Para simular um erro, descomente a linha abaixo:
-  // throw new Error("Falha simulada de envio.");
+  const res = await fetch("https://api.web3forms.com/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      access_key: WEB3FORMS_ACCESS_KEY,
+      subject: "Novo diagnóstico solicitado — Korthex",
+      from_name: "Site Korthex",
+      nome: dados.nome,
+      email: dados.email,
+      empresa: dados.empresa,
+      telefone: dados.telefone || "",
+      mensagem: dados.mensagem,
+    }),
+  });
+  const json = await res.json().catch(() => ({ success: false }));
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || "Falha no envio");
+  }
 }
 // ─────────────────────────────────────────────────────────────
+
+// Dispara o evento de conversão (lead) para GA4 + Google Ads.
+function registrarConversao() {
+  if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
+    (window as any).gtag("event", "generate_lead", {
+      event_category: "formulario",
+      event_label: "diagnostico_gratuito",
+    });
+  }
+}
 
 export function ContactForm() {
   const [data, setData] = useState<FormData>(VAZIO);
@@ -70,6 +95,7 @@ export function ContactForm() {
     setErros({});
     try {
       await enviarContato(parsed.data);
+      registrarConversao();
       setStatus("ok");
       setData(VAZIO);
     } catch (err) {
@@ -224,34 +250,3 @@ function Field({
     </div>
   );
 }
-
-/*
- * ────────────────────────────────────────────────────────────────
- * COMO CONECTAR A UM SERVIÇO REAL (substitua o corpo de enviarContato)
- * ────────────────────────────────────────────────────────────────
- *
- * 1) Formspree — crie o form em formspree.io e use seu endpoint:
- *
- *    async function enviarContato(dados: FormData) {
- *      const res = await fetch("https://formspree.io/f/SEU_ID", {
- *        method: "POST",
- *        headers: { "Content-Type": "application/json", Accept: "application/json" },
- *        body: JSON.stringify(dados),
- *      });
- *      if (!res.ok) throw new Error("Falha no envio");
- *    }
- *
- * 2) Web3Forms — pegue sua access_key em web3forms.com:
- *
- *    async function enviarContato(dados: FormData) {
- *      const res = await fetch("https://api.web3forms.com/submit", {
- *        method: "POST",
- *        headers: { "Content-Type": "application/json" },
- *        body: JSON.stringify({ access_key: "SUA_CHAVE", ...dados }),
- *      });
- *      if (!res.ok) throw new Error("Falha no envio");
- *    }
- *
- * Em ambos os casos, crie a conta e gere a chave você mesmo, e cole aqui.
- * ────────────────────────────────────────────────────────────────
- */
