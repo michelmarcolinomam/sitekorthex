@@ -48,6 +48,26 @@ export const Route = createFileRoute("/lideranca")({
       { property: "og:url", content: "https://korthex.com.br/lideranca" },
     ],
     links: [{ rel: "canonical", href: "https://korthex.com.br/lideranca" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Service",
+          name: "Korthex Liderança",
+          serviceType: "Desenvolvimento de lideranças e treinamentos",
+          url: "https://korthex.com.br/lideranca",
+          provider: { "@id": "https://korthex.com.br/#organization" },
+          areaServed: { "@type": "Country", name: "Brasil" },
+          audience: {
+            "@type": "Audience",
+            audienceType: "Coordenadores, supervisores, gerentes e líderes",
+          },
+          description:
+            "Mentoria contínua e treinamentos aplicados de liderança: gestão das emoções, gestão de conflitos, comunicação assertiva e identidade da liderança.",
+        }),
+      },
+    ],
   }),
   component: LiderancaPage,
 });
