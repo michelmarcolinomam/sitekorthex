@@ -26,6 +26,25 @@ export const Route = createFileRoute("/")({
       { property: "og:type", content: "website" },
     ],
     links: [{ rel: "canonical", href: "https://korthex.com.br/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Person",
+          "@id": "https://korthex.com.br/#michel-marcolino",
+          name: "Michel Marcolino",
+          jobTitle: "Fundador e Mentor Executivo",
+          worksFor: { "@id": "https://korthex.com.br/#organization" },
+          description:
+            "Há mais de 15 anos conduz processos privados de desenvolvimento com fundadores, sucessores e executivos.",
+          sameAs: [
+            "https://www.linkedin.com/company/korthexid/",
+            "https://www.instagram.com/korthexid/",
+          ],
+        }),
+      },
+    ],
   }),
 });
 
