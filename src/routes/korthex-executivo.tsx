@@ -47,6 +47,26 @@ export const Route = createFileRoute("/korthex-executivo")({
       { property: "og:url", content: "https://korthex.com.br/korthex-executivo" },
     ],
     links: [{ rel: "canonical", href: "https://korthex.com.br/korthex-executivo" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Service",
+          name: "Korthex Executivo",
+          serviceType: "Mentoria executiva individual",
+          url: "https://korthex.com.br/korthex-executivo",
+          provider: { "@id": "https://korthex.com.br/#organization" },
+          areaServed: { "@type": "Country", name: "Brasil" },
+          audience: {
+            "@type": "Audience",
+            audienceType: "Fundadores, sócios, CEOs, sucessores e diretores executivos",
+          },
+          description:
+            "Desenvolvimento estratégico individual para fundadores e executivos, com foco em identidade, decisão, gestão emocional, liderança e sucessão.",
+        }),
+      },
+    ],
   }),
   component: KorthexExecutivoPage,
 });
