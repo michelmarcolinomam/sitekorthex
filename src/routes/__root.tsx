@@ -72,14 +72,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Korthex — Desenvolvimento de Líderes e Mentoria Executiva" },
+      { name: "description", content: "Mentoria executiva e desenvolvimento de lideranças para fundadores, executivos e equipes. Método Korthex: maturidade que sustenta o crescimento." },
+      { name: "author", content: "Korthex" },
+      { property: "og:title", content: "Korthex — Desenvolvimento de Líderes e Mentoria Executiva" },
+      { property: "og:description", content: "Mentoria executiva e desenvolvimento de lideranças para fundadores, executivos e equipes." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:site_name", content: "Korthex" },
+      { property: "og:locale", content: "pt_BR" },
+      { property: "og:image", content: "https://korthex.com.br/assets/og-korthex.jpg" },
+      { name: "twitter:image", content: "https://korthex.com.br/assets/og-korthex.jpg" },
     ],
     links: [
       {
@@ -96,7 +99,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <HeadContent />
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-TC66X3SXEP"></script>
