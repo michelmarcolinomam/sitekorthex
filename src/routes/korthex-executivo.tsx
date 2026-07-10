@@ -28,7 +28,7 @@ function KorthexLogo({ className = "h-6" }: { className?: string }) {
 export const Route = createFileRoute("/korthex-executivo")({
   head: () => ({
     meta: [
-      { title: "Korthex Executivo — Arquitetura de Evolução do Fundador" },
+      { title: "Korthex Executivo — Mentoria para Fundadores e CEOs" },
       {
         name: "description",
         content:
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/korthex-executivo")({
       },
       {
         property: "og:title",
-        content: "Korthex Executivo — Arquitetura de Evolução do Fundador",
+        content: "Korthex Executivo — Mentoria para Fundadores e CEOs",
       },
       {
         property: "og:description",
@@ -44,7 +44,9 @@ export const Route = createFileRoute("/korthex-executivo")({
           "Desenvolvimento estratégico para fundadores e executivos que compreenderam que o crescimento da organização está ligado à própria capacidade de evolução.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://korthex.com.br/korthex-executivo" },
     ],
+    links: [{ rel: "canonical", href: "https://korthex.com.br/korthex-executivo" }],
   }),
   component: KorthexExecutivoPage,
 });
