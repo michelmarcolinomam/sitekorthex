@@ -90,6 +90,47 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
     ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "ProfessionalService",
+          "@id": "https://korthex.com.br/#organization",
+          name: "Korthex",
+          alternateName: "Korthex Inteligência e Desenvolvimento",
+          url: "https://korthex.com.br/",
+          image: "https://korthex.com.br/assets/og-korthex.jpg",
+          description:
+            "Korthex desenvolve a inteligência organizacional de executivos, líderes e empresas por meio de mentoria executiva, desenvolvimento de lideranças e treinamento de equipes.",
+          email: "contato@korthexid.com.br",
+          areaServed: ["Brasil", "Paraná", "São Paulo"],
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: "Maringá",
+            addressRegion: "PR",
+            addressCountry: "BR",
+          },
+          founder: { "@type": "Person", name: "Michel Marcolino", jobTitle: "Fundador" },
+          sameAs: [
+            "https://www.linkedin.com/company/korthexid/",
+            "https://www.instagram.com/korthexid/",
+          ],
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "@id": "https://korthex.com.br/#website",
+          url: "https://korthex.com.br/",
+          name: "Korthex",
+          inLanguage: "pt-BR",
+          publisher: { "@id": "https://korthex.com.br/#organization" },
+        }),
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
