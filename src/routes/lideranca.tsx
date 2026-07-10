@@ -32,20 +32,22 @@ function KorthexLogo({ className = "h-6" }: { className?: string }) {
 export const Route = createFileRoute("/lideranca")({
   head: () => ({
     meta: [
-      { title: "Korthex Liderança — Korthex" },
+      { title: "Korthex Liderança — Desenvolvimento de Lideranças" },
       {
         name: "description",
         content:
           "Korthex Liderança: arquitetura de desenvolvimento da liderança. Mentoria contínua e treinamentos aplicados para coordenadores, supervisores, gerentes e líderes.",
       },
-      { property: "og:title", content: "Korthex Liderança — Korthex" },
+      { property: "og:title", content: "Korthex Liderança — Desenvolvimento de Lideranças" },
       {
         property: "og:description",
         content:
           "Korthex Liderança: arquitetura de desenvolvimento da liderança. Mentoria contínua e treinamentos aplicados para coordenadores, supervisores, gerentes e líderes.",
       },
       { property: "og:type", content: "article" },
+      { property: "og:url", content: "https://korthex.com.br/lideranca" },
     ],
+    links: [{ rel: "canonical", href: "https://korthex.com.br/lideranca" }],
   }),
   component: LiderancaPage,
 });
