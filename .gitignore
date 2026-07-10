@@ -1,0 +1,36 @@
+# Dependências
+node_modules/
+
+# Build
+dist/
+.output/
+.vinxi/
+.tanstack/
+
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars
+
+# Cache do Vite
+node_modules/.vite/
+.vite/
+
+# Ambiente
+.env
+.env.*
+!.env.example
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

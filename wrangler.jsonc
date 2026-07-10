@@ -4,4 +4,24 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
+  "account_id": "944b970bc0ded1ab3d9062525f9b8066",
+
+  "d1_databases": [
+    {
+      "binding": "BLOG_DB",
+      "database_name": "korthex-blog",
+      "database_id": "2d0c6db4-c06a-4cdc-8262-865cf5c2828d"
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "BLOG_MEDIA",
+      "bucket_name": "korthex-blog-media"
+    }
+  ],
+
+  "vars": {
+    "MEDIA_PUBLIC_URL": "https://pub-d40f1b2e81e84d16ade2fca1d8c31282.r2.dev"
+  }
 }

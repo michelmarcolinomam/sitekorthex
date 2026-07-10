@@ -15,6 +15,11 @@ import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as LiderancaRouteImport } from './routes/lideranca'
 import { Route as KorthexExecutivoRouteImport } from './routes/korthex-executivo'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as AdminNovoRouteImport } from './routes/admin.novo'
+import { Route as AdminIdRouteImport } from './routes/admin.$id'
 
 const PerformanceRoute = PerformanceRouteImport.update({
   id: '/performance',
@@ -46,6 +51,31 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminNovoRoute = AdminNovoRouteImport.update({
+  id: '/admin/novo',
+  path: '/admin/novo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIdRoute = AdminIdRouteImport.update({
+  id: '/admin/$id',
+  path: '/admin/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +84,11 @@ export interface FileRoutesByFullPath {
   '/manifesto': typeof ManifestoRoute
   '/metodo': typeof MetodoRoute
   '/performance': typeof PerformanceRoute
+  '/admin/$id': typeof AdminIdRoute
+  '/admin/novo': typeof AdminNovoRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +97,11 @@ export interface FileRoutesByTo {
   '/manifesto': typeof ManifestoRoute
   '/metodo': typeof MetodoRoute
   '/performance': typeof PerformanceRoute
+  '/admin/$id': typeof AdminIdRoute
+  '/admin/novo': typeof AdminNovoRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/admin': typeof AdminIndexRoute
+  '/blog': typeof BlogIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +111,11 @@ export interface FileRoutesById {
   '/manifesto': typeof ManifestoRoute
   '/metodo': typeof MetodoRoute
   '/performance': typeof PerformanceRoute
+  '/admin/$id': typeof AdminIdRoute
+  '/admin/novo': typeof AdminNovoRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +126,11 @@ export interface FileRouteTypes {
     | '/manifesto'
     | '/metodo'
     | '/performance'
+    | '/admin/$id'
+    | '/admin/novo'
+    | '/blog/$slug'
+    | '/admin/'
+    | '/blog/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +139,11 @@ export interface FileRouteTypes {
     | '/manifesto'
     | '/metodo'
     | '/performance'
+    | '/admin/$id'
+    | '/admin/novo'
+    | '/blog/$slug'
+    | '/admin'
+    | '/blog'
   id:
     | '__root__'
     | '/'
@@ -97,6 +152,11 @@ export interface FileRouteTypes {
     | '/manifesto'
     | '/metodo'
     | '/performance'
+    | '/admin/$id'
+    | '/admin/novo'
+    | '/blog/$slug'
+    | '/admin/'
+    | '/blog/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +166,11 @@ export interface RootRouteChildren {
   ManifestoRoute: typeof ManifestoRoute
   MetodoRoute: typeof MetodoRoute
   PerformanceRoute: typeof PerformanceRoute
+  AdminIdRoute: typeof AdminIdRoute
+  AdminNovoRoute: typeof AdminNovoRoute
+  BlogSlugRoute: typeof BlogSlugRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  BlogIndexRoute: typeof BlogIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -152,6 +217,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/novo': {
+      id: '/admin/novo'
+      path: '/admin/novo'
+      fullPath: '/admin/novo'
+      preLoaderRoute: typeof AdminNovoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/$id': {
+      id: '/admin/$id'
+      path: '/admin/$id'
+      fullPath: '/admin/$id'
+      preLoaderRoute: typeof AdminIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -162,6 +262,11 @@ const rootRouteChildren: RootRouteChildren = {
   ManifestoRoute: ManifestoRoute,
   MetodoRoute: MetodoRoute,
   PerformanceRoute: PerformanceRoute,
+  AdminIdRoute: AdminIdRoute,
+  AdminNovoRoute: AdminNovoRoute,
+  BlogSlugRoute: BlogSlugRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  BlogIndexRoute: BlogIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
