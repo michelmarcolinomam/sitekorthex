@@ -125,11 +125,11 @@ function CTA() {
               de se faz sentido continuar.
             </p>
             <a
-              href="mailto:contato@korthex.com"
+              href="mailto:contato@korthexid.com.br"
               className="mt-8 inline-flex items-center gap-3 text-foreground/70 hover:text-primary transition-colors"
             >
               <span className="text-[11px] uppercase tracking-[0.25em]">
-                contato@korthex.com
+                contato@korthexid.com.br
               </span>
             </a>
             <div className="mt-8">
