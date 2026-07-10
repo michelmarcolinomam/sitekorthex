@@ -48,6 +48,26 @@ export const Route = createFileRoute("/performance")({
       { property: "og:url", content: "https://korthex.com.br/performance" },
     ],
     links: [{ rel: "canonical", href: "https://korthex.com.br/performance" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Service",
+          name: "Korthex Performance",
+          serviceType: "Treinamento e desenvolvimento de equipes",
+          url: "https://korthex.com.br/performance",
+          provider: { "@id": "https://korthex.com.br/#organization" },
+          areaServed: { "@type": "Country", name: "Brasil" },
+          audience: {
+            "@type": "Audience",
+            audienceType: "Equipes, setores e colaboradores",
+          },
+          description:
+            "Seis treinamentos que desenvolvem capacidades emocionais, comportamentais e relacionais para fortalecer pessoas, equipes e resultados.",
+        }),
+      },
+    ],
   }),
   component: PerformancePage,
 });
@@ -193,11 +213,11 @@ function CTA() {
               da sua equipe.
             </p>
             <a
-              href="mailto:contato@korthex.com"
+              href="mailto:contato@korthexid.com.br"
               className="mt-8 inline-flex items-center gap-3 text-foreground/70 hover:text-primary transition-colors"
             >
               <span className="text-[11px] uppercase tracking-[0.25em]">
-                contato@korthex.com
+                contato@korthexid.com.br
               </span>
             </a>
             <div className="mt-8">
