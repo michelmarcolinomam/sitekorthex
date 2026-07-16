@@ -22,6 +22,7 @@ export const Route = createFileRoute("/blog/$slug")({
       meta: [
         { title: `${post.title} — Korthex` },
         { name: "description", content: desc },
+        { name: "author", content: post.author_name || "Korthex" },
         { property: "og:title", content: post.title },
         { property: "og:description", content: desc },
         { property: "og:type", content: "article" },
