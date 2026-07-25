@@ -8,6 +8,7 @@ import {
   type AvaliacaoTipo,
   type PainelCliente,
 } from "@/lib/diag-server";
+import { validaLead } from "@/lib/lead-validacao";
 import { KorthexLogo } from "@/components/blog/Chrome";
 
 export const Route = createFileRoute("/diagnosticos/$chave")({
@@ -143,25 +144,56 @@ function Boas({ nome }: { nome: string }) {
 
 /* ─────────────────────────  Etapa 1 — captura do lead  ───────────────────────── */
 
+type CampoLead = "nome" | "cargo" | "email" | "telefone";
+
+/** Máscara de telefone conforme digita: (11) 99999-9999 */
+function mascaraTelefone(v: string): string {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
 function FormLead({ chave }: { chave: string }) {
   const router = useRouter();
   const [form, setForm] = useState({ nome: "", cargo: "", email: "", telefone: "" });
+  const [tocado, setTocado] = useState<Partial<Record<CampoLead, boolean>>>({});
+  const [erros, setErros] = useState<Partial<Record<CampoLead, string>>>({});
   const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [falha, setFalha] = useState<string | null>(null);
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }));
+  // Mesma régua do servidor, aqui só para avisar enquanto digita.
+  const local = validaLead(form);
+  // (a validação local só alimenta as mensagens; o servidor é quem decide)
+
+  const set = (k: CampoLead) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = k === "telefone" ? mascaraTelefone(e.target.value) : e.target.value;
+    setForm((f) => ({ ...f, [k]: v }));
+    setErros((x) => ({ ...x, [k]: undefined }));
+  };
+  const marcaTocado = (k: CampoLead) => () => setTocado((t) => ({ ...t, [k]: true }));
+
+  /** Só mostra o erro depois que a pessoa saiu do campo ou tentou enviar. */
+  const erroDe = (k: CampoLead) => erros[k] ?? (tocado[k] ? local.erros[k] : undefined);
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (salvando) return;
+    setTocado({ nome: true, cargo: true, email: true, telefone: true });
+    setFalha(null);
+    if (!local.ok) return;
+
     setSalvando(true);
-    setErro(null);
     try {
-      await publicSalvarLead({ data: { chave, ...form } });
+      const r = await publicSalvarLead({ data: { chave, ...form } });
+      if (!r.ok) {
+        setErros(r.erros);
+        return;
+      }
       await router.invalidate();
     } catch (err) {
-      setErro(err instanceof Error ? err.message : "Não foi possível salvar. Tente novamente.");
+      setFalha(err instanceof Error ? err.message : "Não foi possível salvar. Tente novamente.");
     } finally {
       setSalvando(false);
     }
@@ -173,40 +205,115 @@ function FormLead({ chave }: { chave: string }) {
         <h2 className="text-lg font-semibold">Antes de começar, quem acompanha por aí?</h2>
         <p className="mt-2 text-sm leading-relaxed text-foreground/55">
           Precisamos de um responsável na empresa para conduzir o processo e receber
-          os resultados. Leva menos de um minuto.
+          os resultados. Todos os campos são obrigatórios.
         </p>
       </div>
 
-      <form onSubmit={enviar} className="grid gap-5 md:grid-cols-2">
-        <div>
-          <label className={ROTULO} htmlFor="lead-nome">Seu nome *</label>
-          <input id="lead-nome" required value={form.nome} onChange={set("nome")} placeholder="Nome completo" className={CAMPO} />
-        </div>
-        <div>
-          <label className={ROTULO} htmlFor="lead-cargo">Cargo</label>
-          <input id="lead-cargo" value={form.cargo} onChange={set("cargo")} placeholder="Ex.: Diretora de RH" className={CAMPO} />
-        </div>
-        <div>
-          <label className={ROTULO} htmlFor="lead-email">E-mail corporativo *</label>
-          <input id="lead-email" required type="email" value={form.email} onChange={set("email")} placeholder="voce@empresa.com.br" className={CAMPO} />
-        </div>
-        <div>
-          <label className={ROTULO} htmlFor="lead-telefone">Telefone / WhatsApp</label>
-          <input id="lead-telefone" value={form.telefone} onChange={set("telefone")} placeholder="(11) 99999-9999" className={CAMPO} />
-        </div>
+      <form onSubmit={enviar} noValidate className="grid gap-5 md:grid-cols-2">
+        <CampoTexto
+          id="lead-nome"
+          rotulo="Seu nome completo"
+          valor={form.nome}
+          onChange={set("nome")}
+          onBlur={marcaTocado("nome")}
+          erro={erroDe("nome")}
+          placeholder="Nome e sobrenome"
+          autoComplete="name"
+        />
+        <CampoTexto
+          id="lead-cargo"
+          rotulo="Cargo"
+          valor={form.cargo}
+          onChange={set("cargo")}
+          onBlur={marcaTocado("cargo")}
+          erro={erroDe("cargo")}
+          placeholder="Ex.: Diretora de RH"
+          autoComplete="organization-title"
+        />
+        <CampoTexto
+          id="lead-email"
+          rotulo="E-mail corporativo"
+          tipo="email"
+          valor={form.email}
+          onChange={set("email")}
+          onBlur={marcaTocado("email")}
+          erro={erroDe("email")}
+          placeholder="voce@empresa.com.br"
+          autoComplete="email"
+        />
+        <CampoTexto
+          id="lead-telefone"
+          rotulo="Telefone / WhatsApp"
+          tipo="tel"
+          valor={form.telefone}
+          onChange={set("telefone")}
+          onBlur={marcaTocado("telefone")}
+          erro={erroDe("telefone")}
+          placeholder="(11) 99999-9999"
+          autoComplete="tel"
+        />
 
-        {erro ? <p className="md:col-span-2 text-sm text-destructive">{erro}</p> : null}
+        {falha ? <p className="md:col-span-2 text-sm text-destructive">{falha}</p> : null}
 
         <div className="md:col-span-2 flex flex-col gap-3 pt-2 md:flex-row md:items-center md:justify-between">
           <p className="text-[11px] leading-relaxed text-foreground/40">
             Seus dados ficam com a Korthex e são usados apenas para conduzir este diagnóstico.
           </p>
+          {/* Botão sempre ativo: quem clica precisa DESCOBRIR o que falta,
+              não bater num botão morto. A trava real está no servidor. */}
           <button type="submit" disabled={salvando} className={`${BOTAO} shrink-0`}>
-            {salvando ? "Salvando…" : "Acessar painel"}
+            {salvando ? "Verificando…" : "Acessar painel"}
           </button>
         </div>
       </form>
     </section>
+  );
+}
+
+function CampoTexto({
+  id,
+  rotulo,
+  valor,
+  onChange,
+  onBlur,
+  erro,
+  placeholder,
+  tipo = "text",
+  autoComplete,
+}: {
+  id: string;
+  rotulo: string;
+  valor: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur: () => void;
+  erro?: string;
+  placeholder?: string;
+  tipo?: string;
+  autoComplete?: string;
+}) {
+  return (
+    <div>
+      <label className={ROTULO} htmlFor={id}>
+        {rotulo} <span className="text-primary">*</span>
+      </label>
+      <input
+        id={id}
+        type={tipo}
+        value={valor}
+        onChange={onChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        aria-invalid={Boolean(erro)}
+        aria-describedby={erro ? `${id}-erro` : undefined}
+        className={`${CAMPO} ${erro ? "border-destructive focus:border-destructive" : ""}`}
+      />
+      {erro ? (
+        <p id={`${id}-erro`} className="mt-1.5 text-xs text-destructive">
+          {erro}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { env } from "cloudflare:workers";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "./access-auth";
+import { validaLead, dominioRecebeEmail, type ResultadoValidacao } from "./lead-validacao";
 
 /**
  * Camada de servidor do módulo DIAGNÓSTICOS do Korthex.
@@ -88,6 +89,11 @@ export interface PainelCliente {
   avaliacoes: Avaliacao[];
   respostasPorAvaliacao: Record<string, number>;
 }
+
+/** Sucesso, ou os erros campo a campo para a tela destacar. */
+export type SalvarLeadResposta =
+  | { ok: true }
+  | { ok: false; erros: ResultadoValidacao["erros"] };
 
 const CHAVE_RE = /^KX-[A-Z2-9]{4,10}$/;
 
@@ -192,13 +198,19 @@ export const publicSalvarLead = createServerFn({ method: "POST" })
       telefone?: string;
     }) => input,
   )
-  .handler(async ({ data }): Promise<{ ok: true }> => {
+  .handler(async ({ data }): Promise<SalvarLeadResposta> => {
     const db = sb();
-    const nome = data.nome?.trim();
-    const email = data.email?.trim().toLowerCase();
-    if (!nome) throw new Error("Informe o seu nome.");
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      throw new Error("Informe um e-mail válido.");
+
+    // A régua vale no servidor: a tela pode ser contornada, isto não.
+    const v = validaLead(data);
+    if (!v.ok) return { ok: false, erros: v.erros };
+
+    if (!(await dominioRecebeEmail(v.dominioEmail))) {
+      return {
+        ok: false,
+        erros: { email: "Esse domínio de e-mail não recebe mensagens. Confira o endereço." },
+      };
+    }
 
     const cliente = await clientePorChave(db, data.chave);
     if (!cliente) throw new Error("Chave de acesso não encontrada.");
@@ -212,10 +224,10 @@ export const publicSalvarLead = createServerFn({ method: "POST" })
     const { error } = await db
       .from("clientes")
       .update({
-        responsavel_nome: nome.slice(0, 120),
-        responsavel_cargo: data.cargo?.trim().slice(0, 120) || null,
-        responsavel_email: email.slice(0, 160),
-        responsavel_telefone: data.telefone?.trim().slice(0, 40) || null,
+        responsavel_nome: v.limpo.nome.slice(0, 120),
+        responsavel_cargo: v.limpo.cargo.slice(0, 120),
+        responsavel_email: v.limpo.email.slice(0, 160),
+        responsavel_telefone: v.limpo.telefone.slice(0, 40),
         lead_preenchido_em: new Date().toISOString(),
         ...(atual?.status === "criado" ? { status: "lead" } : {}),
       })
