@@ -22,6 +22,7 @@ import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AdminNovoRouteImport } from './routes/admin.novo'
 import { Route as AdminIdRouteImport } from './routes/admin.$id'
 import { Route as AdminDiagnosticosIndexRouteImport } from './routes/admin.diagnosticos.index'
+import { Route as AdminDiagnosticosResultadoExemploRouteImport } from './routes/admin.diagnosticos.resultado-exemplo'
 import { Route as AdminDiagnosticosIdRouteImport } from './routes/admin.diagnosticos.$id'
 
 const PerformanceRoute = PerformanceRouteImport.update({
@@ -89,6 +90,12 @@ const AdminDiagnosticosIndexRoute = AdminDiagnosticosIndexRouteImport.update({
   path: '/admin/diagnosticos/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminDiagnosticosResultadoExemploRoute =
+  AdminDiagnosticosResultadoExemploRouteImport.update({
+    id: '/admin/diagnosticos/resultado-exemplo',
+    path: '/admin/diagnosticos/resultado-exemplo',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminDiagnosticosIdRoute = AdminDiagnosticosIdRouteImport.update({
   id: '/admin/diagnosticos/$id',
   path: '/admin/diagnosticos/$id',
@@ -109,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
+  '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
 }
 export interface FileRoutesByTo {
@@ -125,6 +133,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
   '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
+  '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/admin/diagnosticos': typeof AdminDiagnosticosIndexRoute
 }
 export interface FileRoutesById {
@@ -142,6 +151,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
+  '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
 }
 export interface FileRouteTypes {
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/blog/'
     | '/admin/diagnosticos/$id'
+    | '/admin/diagnosticos/resultado-exemplo'
     | '/admin/diagnosticos/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/blog'
     | '/admin/diagnosticos/$id'
+    | '/admin/diagnosticos/resultado-exemplo'
     | '/admin/diagnosticos'
   id:
     | '__root__'
@@ -192,6 +204,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/blog/'
     | '/admin/diagnosticos/$id'
+    | '/admin/diagnosticos/resultado-exemplo'
     | '/admin/diagnosticos/'
   fileRoutesById: FileRoutesById
 }
@@ -209,6 +222,7 @@ export interface RootRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   AdminDiagnosticosIdRoute: typeof AdminDiagnosticosIdRoute
+  AdminDiagnosticosResultadoExemploRoute: typeof AdminDiagnosticosResultadoExemploRoute
   AdminDiagnosticosIndexRoute: typeof AdminDiagnosticosIndexRoute
 }
 
@@ -305,6 +319,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDiagnosticosIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/diagnosticos/resultado-exemplo': {
+      id: '/admin/diagnosticos/resultado-exemplo'
+      path: '/admin/diagnosticos/resultado-exemplo'
+      fullPath: '/admin/diagnosticos/resultado-exemplo'
+      preLoaderRoute: typeof AdminDiagnosticosResultadoExemploRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/diagnosticos/$id': {
       id: '/admin/diagnosticos/$id'
       path: '/admin/diagnosticos/$id'
@@ -329,6 +350,8 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   AdminDiagnosticosIdRoute: AdminDiagnosticosIdRoute,
+  AdminDiagnosticosResultadoExemploRoute:
+    AdminDiagnosticosResultadoExemploRoute,
   AdminDiagnosticosIndexRoute: AdminDiagnosticosIndexRoute,
 }
 export const routeTree = rootRouteImport
