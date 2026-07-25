@@ -13,9 +13,10 @@ export type Severidade = "crit" | "warn" | "good" | "inv";
 
 export interface DimensaoResultado {
   nome: string;
-  time: number;
-  exec: number;
-  gap: number;
+  /** Nulo quando aquela ótica ainda não respondeu. */
+  time: number | null;
+  exec: number | null;
+  gap: number | null;
   /** Rótulo da pílula: "fratura", "atenção", "consenso", "invertido". */
   rotulo: string;
   severidade: Severidade;
@@ -198,22 +199,22 @@ export function ResultadoLider({ dados }: { dados: ResultadoLiderDados }) {
                 <div className="dim-top">
                   <span className="dim-nome">{d.nome}</span>
                   <span className={`pill pill-${d.severidade}`}>
-                    Gap {d.gap} · {d.rotulo}
+                    {d.gap === null ? d.rotulo : `Gap ${d.gap} · ${d.rotulo}`}
                   </span>
                 </div>
                 <div className="brow">
                   <span className="btag btag-time">Time</span>
                   <div className="bar">
-                    <div className="fill fill-time" style={{ width: `${d.time}%` }} />
+                    <div className="fill fill-time" style={{ width: `${d.time ?? 0}%` }} />
                   </div>
-                  <span className="bval num">{d.time}</span>
+                  <span className="bval num">{d.time ?? "—"}</span>
                 </div>
                 <div className="brow">
                   <span className="btag btag-exec">Exec</span>
                   <div className="bar">
-                    <div className="fill fill-exec" style={{ width: `${d.exec}%` }} />
+                    <div className="fill fill-exec" style={{ width: `${d.exec ?? 0}%` }} />
                   </div>
-                  <span className="bval num">{d.exec}</span>
+                  <span className="bval num">{d.exec ?? "—"}</span>
                 </div>
               </div>
             ))}
@@ -273,15 +274,17 @@ export function ResultadoLider({ dados }: { dados: ResultadoLiderDados }) {
                   <h3>{l.nome}</h3>
                   <div className="cd-nums">
                     <span>
-                      Time <b>{l.time}</b>
+                      Time <b>{l.time ?? "—"}</b>
                     </span>
                     <span>
-                      Exec <b>{l.exec}</b>
+                      Exec <b>{l.exec ?? "—"}</b>
                     </span>
-                    <span>
-                      Gap <b>{l.gap}</b>
-                      {l.severidade === "inv" ? " invertido" : ""}
-                    </span>
+                    {l.gap !== null ? (
+                      <span>
+                        Gap <b>{l.gap}</b>
+                        {l.severidade === "inv" ? " invertido" : ""}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
                 <p className="cd-texto">{comDestaques(l.narrativa)}</p>
