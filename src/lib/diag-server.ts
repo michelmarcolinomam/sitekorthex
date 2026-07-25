@@ -3,6 +3,12 @@ import { env } from "cloudflare:workers";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "./access-auth";
 import { validaLead, dominioRecebeEmail, type ResultadoValidacao } from "./lead-validacao";
+import {
+  calculaLider,
+  type ItemResposta,
+  type RespostaBruta,
+  type ResultadoLiderCalculado,
+} from "./motor-calculo";
 
 /**
  * Camada de servidor do módulo DIAGNÓSTICOS do Korthex.
@@ -479,6 +485,70 @@ export const adminGetCliente = createServerFn({ method: "GET" })
 
     const trabalho = await carregaTrabalho(db, id);
     return { cliente: cliente as Cliente, ...trabalho };
+  });
+
+/* ────────────────────  RESULTADO — lê o banco e calcula  ──────────────────── */
+
+export interface RecorteLider {
+  lider: { id: string; nome: string; cargo: string | null };
+  cliente: { nome_empresa: string; chave: string };
+  calculo: ResultadoLiderCalculado;
+}
+
+/**
+ * Monta o recorte de um líder a partir das respostas reais.
+ * O cálculo em si mora em motor-calculo.ts — aqui só buscamos os dados.
+ */
+export const adminResultadoLider = createServerFn({ method: "GET" })
+  .inputValidator((liderId: string) => liderId)
+  .handler(async ({ data: liderId }): Promise<RecorteLider | null> => {
+    await requireAdmin();
+    const db = sb();
+
+    const { data: lider, error } = await db
+      .from("lideres")
+      .select("id, nome, cargo, cliente_id, clientes(nome_empresa, chave)")
+      .eq("id", liderId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!lider) return null;
+
+    const cliente = (Array.isArray(lider.clientes) ? lider.clientes[0] : lider.clientes) as
+      | { nome_empresa: string; chave: string }
+      | null;
+    if (!cliente) return null;
+
+    const { data: avs, error: e2 } = await db
+      .from("avaliacoes")
+      .select("id, tipo")
+      .eq("lider_id", liderId)
+      .neq("status", "arquivada");
+    if (e2) throw new Error(e2.message);
+
+    const ids = (avs ?? []).map((a) => a.id as string);
+    const tipoPorId = new Map((avs ?? []).map((a) => [a.id as string, a.tipo as AvaliacaoTipo]));
+
+    let brutas: RespostaBruta[] = [];
+    if (ids.length) {
+      const { data: rs, error: e3 } = await db
+        .from("respostas")
+        .select("avaliacao_id, respostas")
+        .in("avaliacao_id", ids);
+      if (e3) throw new Error(e3.message);
+
+      brutas = (rs ?? []).map((r) => ({
+        tipo: tipoPorId.get(r.avaliacao_id as string) as AvaliacaoTipo,
+        itens: Object.values((r.respostas ?? {}) as Record<string, ItemResposta>).filter(
+          (i) => i && typeof i.score === "number",
+        ),
+      }));
+    }
+
+    return {
+      lider: { id: lider.id as string, nome: lider.nome as string, cargo: lider.cargo as string | null },
+      cliente,
+      calculo: calculaLider(brutas),
+    };
   });
 
 /** Arquiva um cliente (some da lista ativa sem apagar dados). */
