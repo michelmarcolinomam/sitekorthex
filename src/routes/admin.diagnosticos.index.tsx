@@ -165,7 +165,7 @@ function PainelDiagnosticos() {
                     href={`/admin/diagnosticos/${c.id}`}
                     className="text-[10px] uppercase tracking-[0.16em] text-primary hover:underline"
                   >
-                    Gerar avaliação
+                    Acompanhar
                   </a>
                   <button
                     type="button"

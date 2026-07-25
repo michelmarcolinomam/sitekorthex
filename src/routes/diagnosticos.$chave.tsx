@@ -1,48 +1,83 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  publicGetDiagnostico,
+  publicGetPainel,
   publicSalvarLead,
+  publicCreateAvaliacoes,
+  publicArchiveAvaliacao,
   type AvaliacaoTipo,
-  type DiagnosticoPublico,
+  type PainelCliente,
 } from "@/lib/diag-server";
 import { KorthexLogo } from "@/components/blog/Chrome";
 
 export const Route = createFileRoute("/diagnosticos/$chave")({
-  loader: ({ params }) => publicGetDiagnostico({ data: params.chave }),
+  loader: ({ params }) => publicGetPainel({ data: params.chave }),
   head: () => ({
     meta: [
       { title: "Seu diagnóstico — Korthex" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
-  component: TelaDiagnosticoCliente,
+  component: PainelDoCliente,
 });
 
-const TIPO_LABEL: Record<AvaliacaoTipo, { titulo: string; otica: string }> = {
-  lideranca_time: { titulo: "Diagnóstico de Liderança", otica: "Visão do time" },
-  lideranca_executivo: { titulo: "Diagnóstico de Liderança", otica: "Visão do executivo" },
-  executivo_lideranca: { titulo: "Diagnóstico do Executivo", otica: "Visão da liderança" },
-  performance_time: { titulo: "Diagnóstico de Performance", otica: "Visão do time" },
+/** Catálogo de diagnósticos que a empresa pode aplicar. */
+const CATALOGO: {
+  valor: AvaliacaoTipo;
+  titulo: string;
+  descricao: string;
+  disponivel: boolean;
+}[] = [
+  {
+    valor: "lideranca_time",
+    titulo: "Visão do time",
+    descricao: "Os liderados avaliam a liderança — a leitura de baixo para cima.",
+    disponivel: true,
+  },
+  {
+    valor: "lideranca_executivo",
+    titulo: "Visão do executivo",
+    descricao: "Sócios e diretoria avaliam a liderança — a leitura de cima para baixo.",
+    disponivel: true,
+  },
+  {
+    valor: "executivo_lideranca",
+    titulo: "Liderança avalia o executivo",
+    descricao: "Em breve.",
+    disponivel: false,
+  },
+  {
+    valor: "performance_time",
+    titulo: "Performance do time",
+    descricao: "Em breve.",
+    disponivel: false,
+  },
+];
+
+const TIPO_CURTO: Record<AvaliacaoTipo, string> = {
+  lideranca_time: "Visão do time",
+  lideranca_executivo: "Visão do executivo",
+  executivo_lideranca: "Liderança → executivo",
+  performance_time: "Performance do time",
 };
 
-function TelaDiagnosticoCliente() {
-  const diag = Route.useLoaderData();
+function PainelDoCliente() {
+  const painel = Route.useLoaderData();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-[880px] items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-[980px] items-center justify-between px-6 py-5">
           <a href="/" aria-label="Korthex">
             <KorthexLogo className="h-6 w-auto" />
           </a>
           <span className="text-[10px] uppercase tracking-[0.25em] text-foreground/45">
-            Diagnósticos
+            {painel?.lead_preenchido ? "Painel de avaliação" : "Diagnósticos"}
           </span>
         </div>
       </header>
 
-      {diag ? <Conteudo diag={diag} /> : <NaoEncontrado />}
+      {painel ? <Conteudo painel={painel} /> : <NaoEncontrado />}
 
       <footer className="border-t border-border py-10">
         <p className="text-center text-[10px] uppercase tracking-[0.2em] text-foreground/35">
@@ -55,7 +90,7 @@ function TelaDiagnosticoCliente() {
 
 function NaoEncontrado() {
   return (
-    <main className="mx-auto max-w-[880px] px-6 py-28 text-center">
+    <main className="mx-auto max-w-[980px] px-6 py-28 text-center">
       <p className="text-[11px] uppercase tracking-[0.3em] text-primary">Acesso</p>
       <h1 className="mt-4 text-2xl font-semibold">Chave não encontrada</h1>
       <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-foreground/55">
@@ -66,28 +101,43 @@ function NaoEncontrado() {
   );
 }
 
-function Conteudo({ diag }: { diag: DiagnosticoPublico }) {
-  return (
-    <main className="mx-auto max-w-[880px] px-6 pb-24">
-      {/* Hero personalizado */}
-      <section className="pt-16 pb-12 md:pt-24">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-primary">
-          Diagnóstico de Liderança
-        </p>
-        <h1 className="mt-5 text-3xl font-semibold leading-tight md:text-[42px] md:leading-[1.15]">
-          Olá, <span className="text-primary">{diag.nome_empresa}</span>.
-          <br />
-          Aqui está o seu diagnóstico.
-        </h1>
-        <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-foreground/60">
-          A Korthex preparou este ambiente exclusivo para mapear a liderança da sua
-          empresa. As respostas da equipe se transformam em um retrato claro de onde
-          a liderança sustenta o negócio — e onde ela precisa de reforço.
-        </p>
-      </section>
+function Conteudo({ painel }: { painel: PainelCliente }) {
+  if (!painel.lead_preenchido) {
+    return (
+      <main className="mx-auto max-w-[980px] px-6 pb-24">
+        <Boas nome={painel.nome_empresa} />
+        <FormLead chave={painel.chave} />
+      </main>
+    );
+  }
 
-      {diag.lead_preenchido ? <Avaliacoes diag={diag} /> : <FormLead chave={diag.chave} />}
+  return (
+    <main className="mx-auto max-w-[980px] px-6 pb-24">
+      <CabecalhoPainel painel={painel} />
+      <GerarAvaliacao chave={painel.chave} />
+      <ListaLideres painel={painel} />
+      <MapaTeaser painel={painel} />
     </main>
+  );
+}
+
+function Boas({ nome }: { nome: string }) {
+  return (
+    <section className="pt-16 pb-12 md:pt-24">
+      <p className="text-[11px] uppercase tracking-[0.3em] text-primary">
+        Diagnóstico de Liderança
+      </p>
+      <h1 className="mt-5 text-3xl font-semibold leading-tight md:text-[42px] md:leading-[1.15]">
+        Olá, <span className="text-primary">{nome}</span>.
+        <br />
+        Aqui está o seu diagnóstico.
+      </h1>
+      <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-foreground/60">
+        A Korthex preparou este ambiente exclusivo para mapear a liderança da sua
+        empresa. As respostas da equipe se transformam em um retrato claro de onde
+        a liderança sustenta o negócio — e onde ela precisa de reforço.
+      </p>
+    </section>
   );
 }
 
@@ -117,10 +167,6 @@ function FormLead({ chave }: { chave: string }) {
     }
   };
 
-  const campo =
-    "w-full rounded-md border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-primary";
-  const rotulo = "mb-2 block text-[10px] uppercase tracking-[0.2em] text-foreground/50";
-
   return (
     <section className="rounded-xl border border-border bg-card p-7 md:p-10">
       <div className="mb-8 max-w-lg">
@@ -133,36 +179,30 @@ function FormLead({ chave }: { chave: string }) {
 
       <form onSubmit={enviar} className="grid gap-5 md:grid-cols-2">
         <div>
-          <label className={rotulo} htmlFor="lead-nome">Seu nome *</label>
-          <input id="lead-nome" required value={form.nome} onChange={set("nome")} placeholder="Nome completo" className={campo} />
+          <label className={ROTULO} htmlFor="lead-nome">Seu nome *</label>
+          <input id="lead-nome" required value={form.nome} onChange={set("nome")} placeholder="Nome completo" className={CAMPO} />
         </div>
         <div>
-          <label className={rotulo} htmlFor="lead-cargo">Cargo</label>
-          <input id="lead-cargo" value={form.cargo} onChange={set("cargo")} placeholder="Ex.: Diretora de RH" className={campo} />
+          <label className={ROTULO} htmlFor="lead-cargo">Cargo</label>
+          <input id="lead-cargo" value={form.cargo} onChange={set("cargo")} placeholder="Ex.: Diretora de RH" className={CAMPO} />
         </div>
         <div>
-          <label className={rotulo} htmlFor="lead-email">E-mail corporativo *</label>
-          <input id="lead-email" required type="email" value={form.email} onChange={set("email")} placeholder="voce@empresa.com.br" className={campo} />
+          <label className={ROTULO} htmlFor="lead-email">E-mail corporativo *</label>
+          <input id="lead-email" required type="email" value={form.email} onChange={set("email")} placeholder="voce@empresa.com.br" className={CAMPO} />
         </div>
         <div>
-          <label className={rotulo} htmlFor="lead-telefone">Telefone / WhatsApp</label>
-          <input id="lead-telefone" value={form.telefone} onChange={set("telefone")} placeholder="(11) 99999-9999" className={campo} />
+          <label className={ROTULO} htmlFor="lead-telefone">Telefone / WhatsApp</label>
+          <input id="lead-telefone" value={form.telefone} onChange={set("telefone")} placeholder="(11) 99999-9999" className={CAMPO} />
         </div>
 
-        {erro ? (
-          <p className="md:col-span-2 text-sm text-destructive">{erro}</p>
-        ) : null}
+        {erro ? <p className="md:col-span-2 text-sm text-destructive">{erro}</p> : null}
 
         <div className="md:col-span-2 flex flex-col gap-3 pt-2 md:flex-row md:items-center md:justify-between">
           <p className="text-[11px] leading-relaxed text-foreground/40">
             Seus dados ficam com a Korthex e são usados apenas para conduzir este diagnóstico.
           </p>
-          <button
-            type="submit"
-            disabled={salvando}
-            className="shrink-0 rounded-full bg-primary px-8 py-3.5 text-[11px] uppercase tracking-[0.2em] text-white transition-colors hover:bg-primary/90 disabled:opacity-40"
-          >
-            {salvando ? "Salvando…" : "Acessar diagnóstico"}
+          <button type="submit" disabled={salvando} className={`${BOTAO} shrink-0`}>
+            {salvando ? "Salvando…" : "Acessar painel"}
           </button>
         </div>
       </form>
@@ -170,74 +210,344 @@ function FormLead({ chave }: { chave: string }) {
   );
 }
 
-/* ────────────────────  Etapa 2 — diagnósticos liberados  ──────────────────── */
+/* ──────────────────  Etapa 2 — o painel: a empresa gera  ────────────────── */
 
-const AV_STATUS: Record<string, { label: string; cls: string }> = {
-  aguardando: { label: "Aguardando respostas", cls: "bg-primary/12 text-primary" },
-  concluida: { label: "Concluída", cls: "bg-emerald-500/12 text-emerald-700" },
-};
+const CAMPO =
+  "w-full rounded-md border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-primary";
+const ROTULO = "mb-2 block text-[10px] uppercase tracking-[0.2em] text-foreground/50";
+const BOTAO =
+  "rounded-full bg-primary px-8 py-3.5 text-[11px] uppercase tracking-[0.2em] text-white transition-colors hover:bg-primary/90 disabled:opacity-40";
 
-function Avaliacoes({ diag }: { diag: DiagnosticoPublico }) {
-  const primeiroNome = diag.responsavel_nome?.split(" ")[0];
+function CabecalhoPainel({ painel }: { painel: PainelCliente }) {
+  const primeiro = painel.responsavel_nome?.split(" ")[0];
+  const lideres = painel.lideres.filter((l) =>
+    painel.avaliacoes.some((a) => a.lider_id === l.id),
+  ).length;
+  const respostas = Object.values(painel.respostasPorAvaliacao).reduce((s, n) => s + n, 0);
 
   return (
-    <section>
-      <div className="mb-8 flex items-start justify-between gap-6">
+    <section className="pt-14 pb-10">
+      <p className="text-[11px] uppercase tracking-[0.3em] text-primary">
+        Painel de avaliação
+      </p>
+      <h1 className="mt-4 text-3xl font-semibold leading-tight md:text-[38px]">
+        {painel.nome_empresa}
+      </h1>
+      <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-foreground/60">
+        {primeiro ? `${primeiro}, escolha` : "Escolha"} quais avaliações aplicar e em quem.
+        Você gera o link de cada questionário aqui e envia para quem vai responder — a
+        Korthex recebe apenas os resultados.
+      </p>
+
+      <div className="mt-8 flex flex-wrap gap-8">
+        <Kpi valor={lideres} rotulo="Líderes em avaliação" />
+        <Kpi valor={painel.avaliacoes.length} rotulo="Avaliações geradas" />
+        <Kpi valor={respostas} rotulo="Respostas recebidas" />
+      </div>
+    </section>
+  );
+}
+
+function Kpi({ valor, rotulo }: { valor: number; rotulo: string }) {
+  return (
+    <div>
+      <p className="text-3xl font-semibold text-foreground">{valor}</p>
+      <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-foreground/45">{rotulo}</p>
+    </div>
+  );
+}
+
+function GerarAvaliacao({ chave }: { chave: string }) {
+  const router = useRouter();
+  const [aberto, setAberto] = useState(false);
+  const [nome, setNome] = useState("");
+  const [cargo, setCargo] = useState("");
+  const [esperados, setEsperados] = useState("6");
+  const [tipos, setTipos] = useState<AvaliacaoTipo[]>(["lideranca_time"]);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  const alternar = (t: AvaliacaoTipo) =>
+    setTipos((atual) => (atual.includes(t) ? atual.filter((x) => x !== t) : [...atual, t]));
+
+  const gerar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (salvando) return;
+    setSalvando(true);
+    setErro(null);
+    setAviso(null);
+    try {
+      const r = await publicCreateAvaliacoes({
+        data: {
+          chave,
+          lider_nome: nome,
+          lider_cargo: cargo,
+          tipos,
+          respondentes_esperados: Number(esperados) || 0,
+        },
+      });
+      setNome("");
+      setCargo("");
+      if (r.criadas === 0) {
+        setAviso("Esse líder já tem avaliação aberta nessas óticas — nada foi duplicado.");
+      } else {
+        setAberto(false);
+      }
+      await router.invalidate();
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Erro ao gerar avaliação.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  if (!aberto) {
+    return (
+      <div className="mb-10">
+        <button type="button" onClick={() => setAberto(true)} className={BOTAO}>
+          + Nova avaliação
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={gerar} className="mb-10 rounded-xl border border-border bg-card p-7 md:p-8">
+      <div className="mb-7 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Gerar nova avaliação</h2>
+        <button
+          type="button"
+          onClick={() => setAberto(false)}
+          className="text-sm text-foreground/40 hover:text-foreground"
+          aria-label="Fechar"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-3">
+        <div className="md:col-span-2">
+          <label className={ROTULO} htmlFor="lider-nome">Líder a ser avaliado *</label>
+          <input
+            id="lider-nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="Ex.: Marina Prado"
+            className={CAMPO}
+          />
+        </div>
         <div>
-          <h2 className="text-lg font-semibold">
-            {primeiroNome ? `${primeiroNome}, estes` : "Estes"} são os diagnósticos da sua equipe
-          </h2>
-          <p className="mt-2 max-w-lg text-sm leading-relaxed text-foreground/55">
-            Cada avaliação abaixo foi preparada para uma pessoa e uma ótica específicas.
-            Compartilhe o link de cada uma com quem vai responder.
-          </p>
+          <label className={ROTULO} htmlFor="lider-esperados">Respondentes esperados</label>
+          <input
+            id="lider-esperados"
+            type="number"
+            min={0}
+            max={200}
+            value={esperados}
+            onChange={(e) => setEsperados(e.target.value)}
+            className={CAMPO}
+          />
+        </div>
+        <div className="md:col-span-3">
+          <label className={ROTULO} htmlFor="lider-cargo">Cargo</label>
+          <input
+            id="lider-cargo"
+            value={cargo}
+            onChange={(e) => setCargo(e.target.value)}
+            placeholder="Ex.: Gerente de Operações"
+            className={CAMPO}
+          />
         </div>
       </div>
 
-      {diag.avaliacoes.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card px-8 py-16 text-center">
-          <p className="text-sm font-medium">Tudo certo por aqui ✓</p>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-foreground/55">
-            Recebemos os seus dados. A Korthex está preparando as avaliações da sua
-            equipe — assim que forem liberadas, elas aparecem nesta mesma página.
-            Guarde este link.
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {diag.avaliacoes.map((a) => {
-            const tipo = TIPO_LABEL[a.tipo] ?? { titulo: "Diagnóstico", otica: a.tipo };
-            const st = AV_STATUS[a.status] ?? { label: a.status, cls: "bg-foreground/8 text-foreground/55" };
-            return (
-              <article
-                key={a.chave_avaliacao}
-                className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 md:flex-row md:items-center md:justify-between"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className={`rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.16em] ${st.cls}`}>
-                      {st.label}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/45">
-                      {tipo.otica}
-                    </span>
+      <p className={`${ROTULO} mt-7`}>Quem vai avaliar este líder?</p>
+      <div className="grid gap-3 md:grid-cols-2">
+        {CATALOGO.map((c) => {
+          const marcado = tipos.includes(c.valor);
+          return (
+            <label
+              key={c.valor}
+              className={`flex gap-3 rounded-md border p-4 transition-colors ${
+                marcado ? "border-primary bg-primary/5" : "border-border"
+              } ${c.disponivel ? "cursor-pointer hover:border-primary/40" : "opacity-50"}`}
+            >
+              <input
+                type="checkbox"
+                checked={marcado}
+                onChange={() => alternar(c.valor)}
+                disabled={!c.disponivel}
+                className="mt-0.5 accent-[color:var(--primary)]"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">{c.titulo}</span>
+                <span className="mt-0.5 block text-xs text-foreground/50">{c.descricao}</span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+
+      {erro ? <p className="mt-5 text-sm text-destructive">{erro}</p> : null}
+      {aviso ? <p className="mt-5 text-sm text-amber-700">{aviso}</p> : null}
+
+      <div className="mt-7 flex justify-end gap-4">
+        <button
+          type="button"
+          onClick={() => setAberto(false)}
+          className="text-[11px] uppercase tracking-[0.2em] text-foreground/50 hover:text-foreground"
+        >
+          Cancelar
+        </button>
+        <button type="submit" disabled={salvando || !nome.trim() || !tipos.length} className={BOTAO}>
+          {salvando ? "Gerando…" : "Gerar avaliação"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function ListaLideres({ painel }: { painel: PainelCliente }) {
+  const router = useRouter();
+  const [copiada, setCopiada] = useState<string | null>(null);
+
+  const copiar = (chaveAv: string) => {
+    void navigator.clipboard?.writeText(`${window.location.origin}/avaliacao/${chaveAv}`);
+    setCopiada(chaveAv);
+    setTimeout(() => setCopiada((k) => (k === chaveAv ? null : k)), 1800);
+  };
+
+  const arquivar = async (id: string, rotulo: string) => {
+    if (!window.confirm(`Arquivar a avaliação ${rotulo}? O link para de funcionar.`)) return;
+    await publicArchiveAvaliacao({ data: { chave: painel.chave, avaliacao_id: id } });
+    void router.invalidate();
+  };
+
+  const comAvaliacao = painel.lideres.filter((l) =>
+    painel.avaliacoes.some((a) => a.lider_id === l.id),
+  );
+
+  if (comAvaliacao.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-border bg-card px-8 py-16 text-center">
+        <p className="text-sm font-medium">Nenhuma avaliação ainda</p>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-foreground/55">
+          Comece por um líder: clique em "Nova avaliação", diga quem será avaliado e
+          quem vai responder. O link do questionário é gerado na hora.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-5">
+      <h2 className="text-lg font-semibold">Líderes em avaliação</h2>
+      {comAvaliacao.map((lider) => {
+        const suas = painel.avaliacoes.filter((a) => a.lider_id === lider.id);
+        return (
+          <section key={lider.id} className="rounded-xl border border-border bg-card p-6">
+            <div className="mb-5">
+              <h3 className="text-base font-semibold">{lider.nome}</h3>
+              {lider.cargo ? <p className="mt-1 text-xs text-foreground/45">{lider.cargo}</p> : null}
+            </div>
+
+            <div className="grid gap-3">
+              {suas.map((a) => {
+                const got = painel.respostasPorAvaliacao[a.id] ?? 0;
+                const exp = a.respondentes_esperados || 0;
+                const pct = exp > 0 ? Math.min(100, Math.round((got / exp) * 100)) : 0;
+                const completa = exp > 0 && got >= exp;
+                return (
+                  <div key={a.id} className="rounded-md border border-border p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.16em] ${
+                            completa
+                              ? "bg-emerald-500/12 text-emerald-700"
+                              : "bg-primary/12 text-primary"
+                          }`}
+                        >
+                          {completa ? "Concluída" : "Aguardando respostas"}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-[0.16em] text-foreground/50">
+                          {TIPO_CURTO[a.tipo]}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <button
+                          type="button"
+                          onClick={() => copiar(a.chave_avaliacao)}
+                          className="text-[10px] uppercase tracking-[0.16em] text-primary hover:underline"
+                        >
+                          {copiada === a.chave_avaliacao ? "Copiado ✓" : "Copiar link"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void arquivar(a.id, a.chave_avaliacao)}
+                          className="text-[10px] uppercase tracking-[0.16em] text-foreground/40 hover:text-destructive"
+                        >
+                          Arquivar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-3">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-foreground/8">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="shrink-0 text-[11px] text-foreground/45">
+                        {got}/{exp || "—"} respostas
+                      </span>
+                    </div>
                   </div>
-                  <h3 className="mt-2 text-base font-semibold">{tipo.titulo}</h3>
-                  {a.lider_nome ? (
-                    <p className="mt-1 text-sm text-foreground/55">
-                      Avaliando: {a.lider_nome}
-                      {a.lider_cargo ? ` · ${a.lider_cargo}` : ""}
-                    </p>
-                  ) : null}
-                </div>
-                <span className="shrink-0 font-mono text-[11px] tracking-wider text-primary/70">
-                  {a.chave_avaliacao}
-                </span>
-              </article>
-            );
-          })}
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function MapaTeaser({ painel }: { painel: PainelCliente }) {
+  const total = painel.avaliacoes.length;
+  if (total === 0) return null;
+
+  const concluidas = painel.avaliacoes.filter((a) => {
+    const got = painel.respostasPorAvaliacao[a.id] ?? 0;
+    return a.respondentes_esperados > 0 && got >= a.respondentes_esperados;
+  }).length;
+  const liberado = concluidas === total;
+
+  return (
+    <section className="mt-10 rounded-xl border border-border bg-[color:var(--surface)] p-7 md:p-8">
+      <h3 className="text-base font-semibold">Mapa da liderança da empresa</h3>
+      <p className="mt-2 max-w-xl text-sm leading-relaxed text-foreground/55">
+        Quando todas as avaliações forem respondidas, a Korthex consolida o retrato da
+        liderança da empresa inteira — a leitura que mostra o que é caso individual e o
+        que virou padrão de cultura.
+      </p>
+      <div className="mt-5 flex items-center gap-3">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-foreground/8">
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{ width: `${total ? Math.round((concluidas / total) * 100) : 0}%` }}
+          />
         </div>
-      )}
+        <span className="shrink-0 text-[11px] text-foreground/45">
+          {concluidas} de {total} concluídas
+        </span>
+      </div>
+      {liberado ? (
+        <p className="mt-4 text-sm font-medium text-primary">
+          Tudo respondido — a Korthex vai preparar a sua leitura.
+        </p>
+      ) : null}
     </section>
   );
 }
