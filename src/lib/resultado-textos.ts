@@ -191,12 +191,23 @@ export function montaResultado(
   // Pior primeiro: é a ordem que conduz a conversa.
   const ordenadas = [...completas].sort((a, b) => {
     const peso = { crit: 0, warn: 1, inv: 2, good: 3 } as const;
-    return peso[a.severidade] - peso[b.severidade] || (b.gap ?? 0) - (a.gap ?? 0);
+    return (
+      peso[a.severidade] - peso[b.severidade] ||
+      (a.nivel ?? 0) - (b.nivel ?? 0) ||
+      (b.gap ?? 0) - (a.gap ?? 0)
+    );
   });
 
   const pior = ordenadas[0];
-  const fortes = completas.filter((d) => d.severidade === "good");
-  const fracas = completas.filter((d) => d.severidade === "crit" || d.severidade === "warn");
+  // Força e fraqueza se medem pelo NÍVEL da competência. O gap diz se as duas
+  // óticas enxergam igual — é outra pergunta, e aparece no rótulo.
+  // Ordenadas por gravidade: a mais frágil abre a lista e a fila de treinamento.
+  const fortes = completas
+    .filter((d) => d.faixa === "hi")
+    .sort((a, b) => (b.nivel ?? 0) - (a.nivel ?? 0));
+  const fracas = completas
+    .filter((d) => d.faixa === "lo" || d.faixa === "mid")
+    .sort((a, b) => (a.nivel ?? 0) - (b.nivel ?? 0));
 
   const leituras: LeituraDimensao[] = ordenadas.map((d) => {
     const modelos = NARRATIVAS[d.chave];
@@ -214,19 +225,23 @@ export function montaResultado(
     };
   });
 
+  // A numeração segue os cards realmente emitidos — dimensões sem copy de
+  // treinamento escrita não deixam buraco na fila.
+  let posicao = 0;
   const treinamentos: Treinamento[] = fracas
-    .map((d, i) => {
+    .map((d) => {
       const base = TREINAMENTOS[d.chave];
       if (!base) return null;
       const { porqueModelo, ...resto } = base;
       const numeros = { time: d.time ?? 0, exec: d.exec ?? 0, gap: d.gap ?? 0 };
+      posicao += 1;
       return {
         ...resto,
-        ordem: `${i + 1}º`,
+        ordem: `${posicao}º`,
         severidade: d.severidade,
         rotulo:
-          d.severidade === "crit"
-            ? `Resolve a fratura · ${d.nome}`
+          d.faixa === "lo"
+            ? `Resolve a fragilidade · ${d.nome}`
             : `Resolve o ponto de atenção · ${d.nome}`,
         marcaPorque: d.gap === null ? undefined : `Gap ${d.gap}`,
         porque: preenche(porqueModelo, numeros),
@@ -249,7 +264,11 @@ export function montaResultado(
       ? "Ainda não há respostas suficientes para apontar o ponto de partida."
       : pior.gap === null
         ? `O ponto mais frágil é **${pior.nome}**, avaliado em **${pior.time ?? pior.exec}**. Com apenas uma das óticas respondida, ainda não dá para medir o desalinhamento entre topo e base.`
-        : `A maior divergência está em **${pior.nome}**: o executivo avalia em **${pior.exec}**, mas o time sente **${pior.time}** — um gap de **${pior.gap} pontos**.`,
+        : pior.gap >= 10
+          ? (pior.exec as number) >= (pior.time as number)
+            ? `A maior divergência está em **${pior.nome}**: o executivo avalia em **${pior.exec}**, mas o time sente **${pior.time}** — um gap de **${pior.gap} pontos**.`
+            : `Inversão em **${pior.nome}**: o time avalia em **${pior.time}**, acima dos **${pior.exec}** do executivo — um gap de **${pior.gap} pontos**. O topo confia menos do que a base.`
+          : `O ponto de partida é **${pior.nome}**, em **${pior.nivel}**. As duas óticas concordam — o que significa que a fragilidade é reconhecida em cima e embaixo.`,
 
     dimensoes: ordenadas.map((d) => ({
       nome: d.nome,
@@ -264,16 +283,16 @@ export function montaResultado(
       destaque: d.nome,
       texto:
         d.gap === null
-          ? `— avaliada em ${d.time ?? d.exec}, dentro da faixa forte.`
-          : `— consenso entre time e executivo (${d.time} / ${d.exec}).`,
+          ? `— avaliada em ${d.nivel}, dentro da faixa forte.`
+          : `— nível ${d.nivel}, com time em ${d.time} e executivo em ${d.exec}.`,
       tom: "good" as const,
     })),
     vulnerabilidades: fracas.map((d) => ({
       destaque: d.nome,
       texto:
         d.gap === null
-          ? `— avaliada em ${d.time ?? d.exec}, abaixo do esperado.`
-          : `— time em ${d.time}, executivo em ${d.exec}, gap de ${d.gap} pontos.`,
+          ? `— avaliada em ${d.nivel}, ${d.faixa === "lo" ? "na faixa frágil" : "em zona de atenção"}.`
+          : `— nível ${d.nivel} (${d.faixa === "lo" ? "frágil" : "atenção"}): time ${d.time}, executivo ${d.exec}.`,
       tom: "crit" as const,
     })),
 

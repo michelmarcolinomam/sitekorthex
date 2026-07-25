@@ -24,6 +24,7 @@ import { Route as AdminIdRouteImport } from './routes/admin.$id'
 import { Route as AdminDiagnosticosIndexRouteImport } from './routes/admin.diagnosticos.index'
 import { Route as AdminDiagnosticosResultadoExemploRouteImport } from './routes/admin.diagnosticos.resultado-exemplo'
 import { Route as AdminDiagnosticosIdRouteImport } from './routes/admin.diagnosticos.$id'
+import { Route as DiagnosticosChaveLiderIdRouteImport } from './routes/diagnosticos.$chave_.lider.$id'
 import { Route as AdminDiagnosticosLiderIdRouteImport } from './routes/admin.diagnosticos.lider.$id'
 
 const PerformanceRoute = PerformanceRouteImport.update({
@@ -102,6 +103,12 @@ const AdminDiagnosticosIdRoute = AdminDiagnosticosIdRouteImport.update({
   path: '/admin/diagnosticos/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiagnosticosChaveLiderIdRoute =
+  DiagnosticosChaveLiderIdRouteImport.update({
+    id: '/diagnosticos/$chave_/lider/$id',
+    path: '/diagnosticos/$chave/lider/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminDiagnosticosLiderIdRoute =
   AdminDiagnosticosLiderIdRouteImport.update({
     id: '/admin/diagnosticos/lider/$id',
@@ -126,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
   '/admin/diagnosticos/lider/$id': typeof AdminDiagnosticosLiderIdRoute
+  '/diagnosticos/$chave/lider/$id': typeof DiagnosticosChaveLiderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -144,6 +152,7 @@ export interface FileRoutesByTo {
   '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/admin/diagnosticos': typeof AdminDiagnosticosIndexRoute
   '/admin/diagnosticos/lider/$id': typeof AdminDiagnosticosLiderIdRoute
+  '/diagnosticos/$chave/lider/$id': typeof DiagnosticosChaveLiderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -163,6 +172,7 @@ export interface FileRoutesById {
   '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
   '/admin/diagnosticos/lider/$id': typeof AdminDiagnosticosLiderIdRoute
+  '/diagnosticos/$chave_/lider/$id': typeof DiagnosticosChaveLiderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/admin/diagnosticos/resultado-exemplo'
     | '/admin/diagnosticos/'
     | '/admin/diagnosticos/lider/$id'
+    | '/diagnosticos/$chave/lider/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/admin/diagnosticos/resultado-exemplo'
     | '/admin/diagnosticos'
     | '/admin/diagnosticos/lider/$id'
+    | '/diagnosticos/$chave/lider/$id'
   id:
     | '__root__'
     | '/'
@@ -219,6 +231,7 @@ export interface FileRouteTypes {
     | '/admin/diagnosticos/resultado-exemplo'
     | '/admin/diagnosticos/'
     | '/admin/diagnosticos/lider/$id'
+    | '/diagnosticos/$chave_/lider/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -238,6 +251,7 @@ export interface RootRouteChildren {
   AdminDiagnosticosResultadoExemploRoute: typeof AdminDiagnosticosResultadoExemploRoute
   AdminDiagnosticosIndexRoute: typeof AdminDiagnosticosIndexRoute
   AdminDiagnosticosLiderIdRoute: typeof AdminDiagnosticosLiderIdRoute
+  DiagnosticosChaveLiderIdRoute: typeof DiagnosticosChaveLiderIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -347,6 +361,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDiagnosticosIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/diagnosticos/$chave_/lider/$id': {
+      id: '/diagnosticos/$chave_/lider/$id'
+      path: '/diagnosticos/$chave/lider/$id'
+      fullPath: '/diagnosticos/$chave/lider/$id'
+      preLoaderRoute: typeof DiagnosticosChaveLiderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/diagnosticos/lider/$id': {
       id: '/admin/diagnosticos/lider/$id'
       path: '/admin/diagnosticos/lider/$id'
@@ -375,6 +396,7 @@ const rootRouteChildren: RootRouteChildren = {
     AdminDiagnosticosResultadoExemploRoute,
   AdminDiagnosticosIndexRoute: AdminDiagnosticosIndexRoute,
   AdminDiagnosticosLiderIdRoute: AdminDiagnosticosLiderIdRoute,
+  DiagnosticosChaveLiderIdRoute: DiagnosticosChaveLiderIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -489,6 +489,73 @@ export const adminGetCliente = createServerFn({ method: "GET" })
 
 /* ────────────────────  RESULTADO — lê o banco e calcula  ──────────────────── */
 
+/** Junta as respostas de um líder e calcula. Usado pelas duas portas. */
+async function recorteDoLider(
+  db: SupabaseClient,
+  liderId: string,
+): Promise<{ nome: string; cargo: string | null; cliente_id: string; calculo: ResultadoLiderCalculado } | null> {
+  const { data: lider, error } = await db
+    .from("lideres")
+    .select("id, nome, cargo, cliente_id")
+    .eq("id", liderId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!lider) return null;
+
+  const { data: avs, error: e2 } = await db
+    .from("avaliacoes")
+    .select("id, tipo")
+    .eq("lider_id", liderId)
+    .neq("status", "arquivada");
+  if (e2) throw new Error(e2.message);
+
+  const ids = (avs ?? []).map((a) => a.id as string);
+  const tipoPorId = new Map((avs ?? []).map((a) => [a.id as string, a.tipo as AvaliacaoTipo]));
+
+  let brutas: RespostaBruta[] = [];
+  if (ids.length) {
+    const { data: rs, error: e3 } = await db
+      .from("respostas")
+      .select("avaliacao_id, respostas")
+      .in("avaliacao_id", ids);
+    if (e3) throw new Error(e3.message);
+    brutas = (rs ?? []).map((r) => ({
+      tipo: tipoPorId.get(r.avaliacao_id as string) as AvaliacaoTipo,
+      itens: Object.values((r.respostas ?? {}) as Record<string, ItemResposta>).filter(
+        (i) => i && typeof i.score === "number",
+      ),
+    }));
+  }
+
+  return {
+    nome: lider.nome as string,
+    cargo: lider.cargo as string | null,
+    cliente_id: lider.cliente_id as string,
+    calculo: calculaLider(brutas),
+  };
+}
+
+/**
+ * Resultado visto pela PRÓPRIA EMPRESA, dentro do painel dela.
+ * A chave KX- é a credencial: o líder tem que pertencer àquele cliente.
+ */
+export const publicResultadoLider = createServerFn({ method: "GET" })
+  .inputValidator((input: { chave: string; liderId: string }) => input)
+  .handler(async ({ data }): Promise<RecorteLider | null> => {
+    const db = sb();
+    const cliente = await clientePorChave(db, data.chave);
+    if (!cliente) return null;
+
+    const r = await recorteDoLider(db, data.liderId);
+    if (!r || r.cliente_id !== cliente.id) return null;
+
+    return {
+      lider: { id: data.liderId, nome: r.nome, cargo: r.cargo },
+      cliente: { nome_empresa: cliente.nome_empresa, chave: cliente.chave },
+      calculo: r.calculo,
+    };
+  });
+
 export interface RecorteLider {
   lider: { id: string; nome: string; cargo: string | null };
   cliente: { nome_empresa: string; chave: string };

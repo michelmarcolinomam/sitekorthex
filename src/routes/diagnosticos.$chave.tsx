@@ -551,11 +551,26 @@ function ListaLideres({ painel }: { painel: PainelCliente }) {
       <h2 className="text-lg font-semibold">Líderes em avaliação</h2>
       {comAvaliacao.map((lider) => {
         const suas = painel.avaliacoes.filter((a) => a.lider_id === lider.id);
+        const temResposta = suas.some((a) => (painel.respostasPorAvaliacao[a.id] ?? 0) > 0);
+        const completo = suas.every((a) => {
+          const got = painel.respostasPorAvaliacao[a.id] ?? 0;
+          return a.respondentes_esperados > 0 && got >= a.respondentes_esperados;
+        });
         return (
           <section key={lider.id} className="rounded-xl border border-border bg-card p-6">
-            <div className="mb-5">
-              <h3 className="text-base font-semibold">{lider.nome}</h3>
-              {lider.cargo ? <p className="mt-1 text-xs text-foreground/45">{lider.cargo}</p> : null}
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-base font-semibold">{lider.nome}</h3>
+                {lider.cargo ? <p className="mt-1 text-xs text-foreground/45">{lider.cargo}</p> : null}
+              </div>
+              {temResposta ? (
+                <a
+                  href={`/diagnosticos/${painel.chave}/lider/${lider.id}`}
+                  className="shrink-0 rounded-full border border-primary px-5 py-2 text-[10px] uppercase tracking-[0.16em] text-primary transition-colors hover:bg-primary hover:text-white"
+                >
+                  Ver resultado {completo ? "" : "parcial"}
+                </a>
+              ) : null}
             </div>
 
             <div className="grid gap-3">

@@ -90,6 +90,12 @@ export function classificaLider(indice: number): { chave: string; rotulo: string
 
 export type Severidade = "crit" | "warn" | "good" | "inv";
 
+/** A faixa do nível traduzida para a mesma escala de severidade das telas. */
+const SEV_POR_FAIXA: Record<"hi" | "mid" | "lo", Severidade> = { hi: "good", mid: "warn", lo: "crit" };
+
+/** Quanto menor, mais grave — usado para escolher a pior de duas severidades. */
+const PESO_SEV: Record<Severidade, number> = { crit: 0, warn: 1, inv: 2, good: 3 };
+
 /**
  * Severidade do GAP entre as duas óticas. Calibrado pelos rótulos que o Michel
  * usou no protótipo do recorte: gap 27 "alto/fratura", 15 e 16 "atenção",
@@ -124,6 +130,11 @@ export interface DimensaoCalculada {
   time: number | null;
   exec: number | null;
   gap: number | null;
+  /** Média das duas óticas — o NÍVEL da competência. */
+  nivel: number | null;
+  /** Faixa do nível pela régua 70/55. */
+  faixa: "hi" | "mid" | "lo" | null;
+  /** Severidade final: a pior entre o nível e o desalinhamento. */
   severidade: Severidade | null;
   rotulo: string | null;
 }
@@ -170,11 +181,34 @@ export function calculaLider(respostas: RespostaBruta[]): ResultadoLiderCalculad
   const dimensoes: DimensaoCalculada[] = DIMENSOES.map((d) => {
     const vTime = paraIndice(time.get(d.chave) ?? []);
     const vExec = paraIndice(exec.get(d.chave) ?? []);
+
+    const presentes = [vTime, vExec].filter((v): v is number => v !== null);
+    const nivel = presentes.length ? media(presentes) : null;
+    const faixa = nivel === null ? null : band(nivel);
+
     if (vTime === null || vExec === null) {
-      return { chave: d.chave, nome: d.nome, time: vTime, exec: vExec, gap: null, severidade: null, rotulo: null };
+      return {
+        chave: d.chave, nome: d.nome, time: vTime, exec: vExec, gap: null, nivel, faixa,
+        severidade: faixa ? (SEV_POR_FAIXA[faixa]) : null,
+        rotulo: faixa ? ROTULO_BAND[faixa] : null,
+      };
     }
+
     const g = severidadeGap(vTime, vExec);
-    return { chave: d.chave, nome: d.nome, time: vTime, exec: vExec, gap: g.gap, severidade: g.severidade, rotulo: g.rotulo };
+    const sevNivel = SEV_POR_FAIXA[faixa as "hi" | "mid" | "lo"];
+
+    // A pior das duas manda. Consenso sobre uma competência fraca continua
+    // sendo fraqueza — só deixou de ser também um desalinhamento.
+    const pior = PESO_SEV[sevNivel] <= PESO_SEV[g.severidade] ? sevNivel : g.severidade;
+    const rotulo =
+      pior === g.severidade && g.severidade !== "good"
+        ? g.rotulo
+        : `${ROTULO_BAND[faixa as "hi" | "mid" | "lo"]}${g.severidade === "inv" ? " · invertido" : ""}`;
+
+    return {
+      chave: d.chave, nome: d.nome, time: vTime, exec: vExec, gap: g.gap, nivel, faixa,
+      severidade: pior, rotulo,
+    };
   });
 
   const indicesTime = dimensoes.map((d) => d.time).filter((v): v is number => v !== null);
