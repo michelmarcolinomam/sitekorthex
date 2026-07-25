@@ -143,9 +143,12 @@ function PainelDiagnosticos() {
                       {c.chave}
                     </span>
                   </div>
-                  <h2 className="mt-2 truncate text-base font-semibold text-foreground">
+                  <a
+                    href={`/admin/diagnosticos/${c.id}`}
+                    className="mt-2 block truncate text-base font-semibold text-foreground hover:text-primary"
+                  >
                     {c.nome_empresa}
-                  </h2>
+                  </a>
                   {c.responsavel_nome ? (
                     <p className="mt-1 truncate text-xs text-foreground/45">
                       {c.responsavel_nome}
@@ -158,6 +161,12 @@ function PainelDiagnosticos() {
                 </div>
 
                 <div className="flex shrink-0 items-center gap-4">
+                  <a
+                    href={`/admin/diagnosticos/${c.id}`}
+                    className="text-[10px] uppercase tracking-[0.16em] text-primary hover:underline"
+                  >
+                    Gerar avaliação
+                  </a>
                   <button
                     type="button"
                     onClick={() => copiarLink(c.chave)}

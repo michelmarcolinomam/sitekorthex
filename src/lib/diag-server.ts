@@ -207,6 +207,190 @@ export const adminCreateCliente = createServerFn({ method: "POST" })
     return row as Cliente;
   });
 
+export interface Lider {
+  id: string;
+  cliente_id: string;
+  nome: string;
+  cargo: string | null;
+  created_at: string;
+}
+
+export interface Avaliacao {
+  id: string;
+  cliente_id: string;
+  lider_id: string | null;
+  tipo: AvaliacaoTipo;
+  chave_avaliacao: string;
+  respondentes_esperados: number;
+  status: "aguardando" | "concluida" | "arquivada";
+  created_at: string;
+}
+
+export interface ClienteDetalhe {
+  cliente: Cliente;
+  lideres: Lider[];
+  avaliacoes: Avaliacao[];
+  respostasPorAvaliacao: Record<string, number>;
+}
+
+/** Abre um cliente com seus líderes, avaliações e contagem de respostas. */
+export const adminGetCliente = createServerFn({ method: "GET" })
+  .inputValidator((id: string) => id)
+  .handler(async ({ data: id }): Promise<ClienteDetalhe | null> => {
+    await requireAdmin();
+    const db = sb();
+
+    const { data: cliente, error } = await db
+      .from("clientes")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!cliente) return null;
+
+    const [{ data: lideres, error: e2 }, { data: avaliacoes, error: e3 }] = await Promise.all([
+      db.from("lideres").select("*").eq("cliente_id", id).order("created_at", { ascending: true }),
+      db
+        .from("avaliacoes")
+        .select("*")
+        .eq("cliente_id", id)
+        .order("created_at", { ascending: true }),
+    ]);
+    if (e2) throw new Error(e2.message);
+    if (e3) throw new Error(e3.message);
+
+    // Quantas respostas já chegaram em cada avaliação.
+    const ids = (avaliacoes ?? []).map((a) => a.id as string);
+    const respostasPorAvaliacao: Record<string, number> = {};
+    if (ids.length) {
+      const { data: rs, error: e4 } = await db
+        .from("respostas")
+        .select("avaliacao_id")
+        .in("avaliacao_id", ids);
+      if (e4) throw new Error(e4.message);
+      for (const r of rs ?? []) {
+        const k = r.avaliacao_id as string;
+        respostasPorAvaliacao[k] = (respostasPorAvaliacao[k] ?? 0) + 1;
+      }
+    }
+
+    return {
+      cliente: cliente as Cliente,
+      lideres: (lideres ?? []) as Lider[],
+      avaliacoes: (avaliacoes ?? []) as Avaliacao[],
+      respostasPorAvaliacao,
+    };
+  });
+
+const TIPOS_VALIDOS: AvaliacaoTipo[] = [
+  "lideranca_time",
+  "lideranca_executivo",
+  "executivo_lideranca",
+  "performance_time",
+];
+
+/**
+ * Gera as avaliações de um líder. Cria o líder se ele ainda não existir
+ * (compara pelo nome, sem diferenciar maiúsculas) e abre uma avaliação por
+ * ótica escolhida, pulando as óticas que aquele líder já tem em aberto.
+ */
+export const adminCreateAvaliacoes = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      cliente_id: string;
+      lider_nome: string;
+      lider_cargo?: string;
+      tipos: AvaliacaoTipo[];
+      respondentes_esperados?: number;
+    }) => input,
+  )
+  .handler(async ({ data }): Promise<{ criadas: number; jaExistiam: number }> => {
+    await requireAdmin();
+    const db = sb();
+
+    const nome = data.lider_nome?.trim();
+    if (!nome) throw new Error("Informe o nome do líder a ser avaliado.");
+
+    const tipos = (data.tipos ?? []).filter((t) => TIPOS_VALIDOS.includes(t));
+    if (!tipos.length) throw new Error("Escolha ao menos uma ótica de avaliação.");
+
+    const esperados = Math.max(0, Math.min(200, Math.trunc(data.respondentes_esperados ?? 0)));
+
+    const { data: cliente, error: eCli } = await db
+      .from("clientes")
+      .select("id")
+      .eq("id", data.cliente_id)
+      .maybeSingle();
+    if (eCli) throw new Error(eCli.message);
+    if (!cliente) throw new Error("Cliente não encontrado.");
+
+    // Reaproveita o líder já cadastrado com o mesmo nome, para não duplicar.
+    const { data: existente, error: eBusca } = await db
+      .from("lideres")
+      .select("id")
+      .eq("cliente_id", data.cliente_id)
+      .ilike("nome", nome)
+      .maybeSingle();
+    if (eBusca) throw new Error(eBusca.message);
+
+    let liderId = existente?.id as string | undefined;
+    if (!liderId) {
+      const { data: novo, error: eIns } = await db
+        .from("lideres")
+        .insert({
+          cliente_id: data.cliente_id,
+          nome: nome.slice(0, 120),
+          cargo: data.lider_cargo?.trim().slice(0, 120) || null,
+        })
+        .select("id")
+        .single();
+      if (eIns) throw new Error(eIns.message);
+      liderId = novo.id as string;
+    } else if (data.lider_cargo?.trim()) {
+      await db
+        .from("lideres")
+        .update({ cargo: data.lider_cargo.trim().slice(0, 120) })
+        .eq("id", liderId);
+    }
+
+    // Não abre uma segunda avaliação da mesma ótica enquanto a atual está viva.
+    const { data: jaTem, error: eJa } = await db
+      .from("avaliacoes")
+      .select("tipo")
+      .eq("lider_id", liderId)
+      .neq("status", "arquivada");
+    if (eJa) throw new Error(eJa.message);
+
+    const ocupados = new Set((jaTem ?? []).map((a) => a.tipo as string));
+    const novos = tipos.filter((t) => !ocupados.has(t));
+    if (!novos.length) return { criadas: 0, jaExistiam: tipos.length };
+
+    const { error: eAv } = await db.from("avaliacoes").insert(
+      novos.map((tipo) => ({
+        cliente_id: data.cliente_id,
+        lider_id: liderId,
+        tipo,
+        respondentes_esperados: esperados,
+      })),
+    );
+    if (eAv) throw new Error(eAv.message);
+
+    return { criadas: novos.length, jaExistiam: tipos.length - novos.length };
+  });
+
+/** Arquiva uma avaliação (some da tela do cliente sem apagar respostas). */
+export const adminArchiveAvaliacao = createServerFn({ method: "POST" })
+  .inputValidator((id: string) => id)
+  .handler(async ({ data: id }): Promise<{ ok: true }> => {
+    await requireAdmin();
+    const { error } = await sb()
+      .from("avaliacoes")
+      .update({ status: "arquivada" })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 /** Arquiva um cliente (some da lista ativa sem apagar dados). */
 export const adminArchiveCliente = createServerFn({ method: "POST" })
   .inputValidator((id: string) => id)

@@ -22,6 +22,7 @@ import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AdminNovoRouteImport } from './routes/admin.novo'
 import { Route as AdminIdRouteImport } from './routes/admin.$id'
 import { Route as AdminDiagnosticosIndexRouteImport } from './routes/admin.diagnosticos.index'
+import { Route as AdminDiagnosticosIdRouteImport } from './routes/admin.diagnosticos.$id'
 
 const PerformanceRoute = PerformanceRouteImport.update({
   id: '/performance',
@@ -88,6 +89,11 @@ const AdminDiagnosticosIndexRoute = AdminDiagnosticosIndexRouteImport.update({
   path: '/admin/diagnosticos/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminDiagnosticosIdRoute = AdminDiagnosticosIdRouteImport.update({
+  id: '/admin/diagnosticos/$id',
+  path: '/admin/diagnosticos/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/diagnosticos/$chave': typeof DiagnosticosChaveRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
 }
 export interface FileRoutesByTo {
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/diagnosticos/$chave': typeof DiagnosticosChaveRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
+  '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
   '/admin/diagnosticos': typeof AdminDiagnosticosIndexRoute
 }
 export interface FileRoutesById {
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/diagnosticos/$chave': typeof DiagnosticosChaveRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
 }
 export interface FileRouteTypes {
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/diagnosticos/$chave'
     | '/admin/'
     | '/blog/'
+    | '/admin/diagnosticos/$id'
     | '/admin/diagnosticos/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/diagnosticos/$chave'
     | '/admin'
     | '/blog'
+    | '/admin/diagnosticos/$id'
     | '/admin/diagnosticos'
   id:
     | '__root__'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/diagnosticos/$chave'
     | '/admin/'
     | '/blog/'
+    | '/admin/diagnosticos/$id'
     | '/admin/diagnosticos/'
   fileRoutesById: FileRoutesById
 }
@@ -196,6 +208,7 @@ export interface RootRouteChildren {
   DiagnosticosChaveRoute: typeof DiagnosticosChaveRoute
   AdminIndexRoute: typeof AdminIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  AdminDiagnosticosIdRoute: typeof AdminDiagnosticosIdRoute
   AdminDiagnosticosIndexRoute: typeof AdminDiagnosticosIndexRoute
 }
 
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDiagnosticosIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/diagnosticos/$id': {
+      id: '/admin/diagnosticos/$id'
+      path: '/admin/diagnosticos/$id'
+      fullPath: '/admin/diagnosticos/$id'
+      preLoaderRoute: typeof AdminDiagnosticosIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -308,6 +328,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiagnosticosChaveRoute: DiagnosticosChaveRoute,
   AdminIndexRoute: AdminIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
+  AdminDiagnosticosIdRoute: AdminDiagnosticosIdRoute,
   AdminDiagnosticosIndexRoute: AdminDiagnosticosIndexRoute,
 }
 export const routeTree = rootRouteImport
