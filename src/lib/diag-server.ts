@@ -338,6 +338,92 @@ export const publicArchiveAvaliacao = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/* ──────────────────  RESPONDENTE — o questionário, por chave AV-  ────────────────── */
+
+const CHAVE_AV_RE = /^AV-[A-Z2-9]{4,10}$/;
+
+/** O que o respondente pode saber: a empresa, quem ele avalia e a ótica. */
+export interface AvaliacaoPublica {
+  chave_avaliacao: string;
+  tipo: AvaliacaoTipo;
+  nome_empresa: string;
+  lider_nome: string | null;
+  lider_cargo: string | null;
+  encerrada: boolean;
+}
+
+export const publicGetAvaliacao = createServerFn({ method: "GET" })
+  .inputValidator((chave: string) => chave)
+  .handler(async ({ data }): Promise<AvaliacaoPublica | null> => {
+    const c = (data ?? "").trim().toUpperCase();
+    if (!CHAVE_AV_RE.test(c)) return null;
+
+    const { data: av, error } = await sb()
+      .from("avaliacoes")
+      .select("chave_avaliacao, tipo, status, clientes(nome_empresa, status), lideres(nome, cargo)")
+      .eq("chave_avaliacao", c)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!av) return null;
+
+    const cliente = (Array.isArray(av.clientes) ? av.clientes[0] : av.clientes) as
+      | { nome_empresa: string; status: string }
+      | null;
+    const lider = (Array.isArray(av.lideres) ? av.lideres[0] : av.lideres) as
+      | { nome: string; cargo: string | null }
+      | null;
+    if (!cliente || cliente.status === "arquivado") return null;
+
+    return {
+      chave_avaliacao: av.chave_avaliacao as string,
+      tipo: av.tipo as AvaliacaoTipo,
+      nome_empresa: cliente.nome_empresa,
+      lider_nome: lider?.nome ?? null,
+      lider_cargo: lider?.cargo ?? null,
+      encerrada: av.status === "arquivada",
+    };
+  });
+
+/**
+ * Grava a resposta de UMA pessoa. Anônima de propósito: guardamos as notas e
+ * o gênero usado nos textos, nunca quem respondeu — é isso que faz a equipe
+ * responder com honestidade.
+ */
+export const publicSalvarResposta = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      chave: string;
+      genero: "m" | "f";
+      respostas: Record<string, { valor: number; score: number; theme: string; facet: string }>;
+    }) => input,
+  )
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const c = (data.chave ?? "").trim().toUpperCase();
+    if (!CHAVE_AV_RE.test(c)) throw new Error("Link de avaliação inválido.");
+
+    const db = sb();
+    const { data: av, error } = await db
+      .from("avaliacoes")
+      .select("id, status")
+      .eq("chave_avaliacao", c)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!av) throw new Error("Link de avaliação não encontrado.");
+    if (av.status === "arquivada") throw new Error("Esta avaliação foi encerrada.");
+
+    const respostas = data.respostas ?? {};
+    if (!Object.keys(respostas).length) throw new Error("Nenhuma resposta para enviar.");
+
+    const { error: eIns } = await db.from("respostas").insert({
+      avaliacao_id: av.id,
+      genero_lideranca: data.genero === "f" ? "f" : "m",
+      respostas,
+      meta: { itens: Object.keys(respostas).length },
+    });
+    if (eIns) throw new Error(eIns.message);
+    return { ok: true };
+  });
+
 /* ────────────────────────  ADMIN (Korthex interno)  ──────────────────────── */
 
 /** Lista todos os clientes, mais recentes primeiro. */

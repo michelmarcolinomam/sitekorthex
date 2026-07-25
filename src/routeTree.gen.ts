@@ -19,6 +19,7 @@ import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as DiagnosticosChaveRouteImport } from './routes/diagnosticos.$chave'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as AvaliacaoChaveRouteImport } from './routes/avaliacao.$chave'
 import { Route as AdminNovoRouteImport } from './routes/admin.novo'
 import { Route as AdminIdRouteImport } from './routes/admin.$id'
 import { Route as AdminDiagnosticosIndexRouteImport } from './routes/admin.diagnosticos.index'
@@ -74,6 +75,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AvaliacaoChaveRoute = AvaliacaoChaveRouteImport.update({
+  id: '/avaliacao/$chave',
+  path: '/avaliacao/$chave',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminNovoRoute = AdminNovoRouteImport.update({
   id: '/admin/novo',
   path: '/admin/novo',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/performance': typeof PerformanceRoute
   '/admin/$id': typeof AdminIdRoute
   '/admin/novo': typeof AdminNovoRoute
+  '/avaliacao/$chave': typeof AvaliacaoChaveRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/diagnosticos/$chave': typeof DiagnosticosChaveRoute
   '/admin/': typeof AdminIndexRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/performance': typeof PerformanceRoute
   '/admin/$id': typeof AdminIdRoute
   '/admin/novo': typeof AdminNovoRoute
+  '/avaliacao/$chave': typeof AvaliacaoChaveRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/diagnosticos/$chave': typeof DiagnosticosChaveRoute
   '/admin': typeof AdminIndexRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/performance': typeof PerformanceRoute
   '/admin/$id': typeof AdminIdRoute
   '/admin/novo': typeof AdminNovoRoute
+  '/avaliacao/$chave': typeof AvaliacaoChaveRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/diagnosticos/$chave': typeof DiagnosticosChaveRoute
   '/admin/': typeof AdminIndexRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/performance'
     | '/admin/$id'
     | '/admin/novo'
+    | '/avaliacao/$chave'
     | '/blog/$slug'
     | '/diagnosticos/$chave'
     | '/admin/'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/performance'
     | '/admin/$id'
     | '/admin/novo'
+    | '/avaliacao/$chave'
     | '/blog/$slug'
     | '/diagnosticos/$chave'
     | '/admin'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/performance'
     | '/admin/$id'
     | '/admin/novo'
+    | '/avaliacao/$chave'
     | '/blog/$slug'
     | '/diagnosticos/$chave'
     | '/admin/'
@@ -204,6 +216,7 @@ export interface RootRouteChildren {
   PerformanceRoute: typeof PerformanceRoute
   AdminIdRoute: typeof AdminIdRoute
   AdminNovoRoute: typeof AdminNovoRoute
+  AvaliacaoChaveRoute: typeof AvaliacaoChaveRoute
   BlogSlugRoute: typeof BlogSlugRoute
   DiagnosticosChaveRoute: typeof DiagnosticosChaveRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -284,6 +297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/avaliacao/$chave': {
+      id: '/avaliacao/$chave'
+      path: '/avaliacao/$chave'
+      fullPath: '/avaliacao/$chave'
+      preLoaderRoute: typeof AvaliacaoChaveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/novo': {
       id: '/admin/novo'
       path: '/admin/novo'
@@ -324,6 +344,7 @@ const rootRouteChildren: RootRouteChildren = {
   PerformanceRoute: PerformanceRoute,
   AdminIdRoute: AdminIdRoute,
   AdminNovoRoute: AdminNovoRoute,
+  AvaliacaoChaveRoute: AvaliacaoChaveRoute,
   BlogSlugRoute: BlogSlugRoute,
   DiagnosticosChaveRoute: DiagnosticosChaveRoute,
   AdminIndexRoute: AdminIndexRoute,
