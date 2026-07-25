@@ -22,6 +22,7 @@
   ],
 
   "vars": {
-    "MEDIA_PUBLIC_URL": "https://pub-d40f1b2e81e84d16ade2fca1d8c31282.r2.dev"
+    "MEDIA_PUBLIC_URL": "https://pub-d40f1b2e81e84d16ade2fca1d8c31282.r2.dev",
+    "SUPABASE_URL": "https://hzuxbmamsxdrlcbddgtx.supabase.co"
   }
 }
