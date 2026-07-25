@@ -3,6 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { handleSeoRoute } from "./lib/seo-routes";
+import { handleAvaliacaoRoute } from "./lib/avaliacao-route";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -73,6 +74,10 @@ export default {
       // /sitemap.xml e /robots.txt são servidos aqui, antes do roteador React.
       const seo = await handleSeoRoute(request, env);
       if (seo) return seo;
+
+      // O questionário é servido do HTML original do protótipo, não pelo React.
+      const avaliacao = await handleAvaliacaoRoute(request, env);
+      if (avaliacao) return avaliacao;
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
