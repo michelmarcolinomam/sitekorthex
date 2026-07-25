@@ -214,8 +214,14 @@ export interface ResultadoEmpresa {
   porDimensao: { chave: ChaveDimensao; nome: string; valor: number; band: "hi" | "mid" | "lo"; rotulo: string }[];
   indiceGeral: number;
   ranking: (LiderNaEmpresa & { posicao: number; classificacao: { chave: string; rotulo: string } })[];
-  /** Dimensões frágeis/atenção em vários líderes = padrão de cultura. */
-  padraoSistemico: { chave: ChaveDimensao; nome: string; lideresAfetados: number; total: number }[];
+  /** Dimensões abaixo da média da empresa = dívida da cultura. */
+  padraoSistemico: {
+    chave: ChaveDimensao;
+    nome: string;
+    valor: number | null;
+    lideresAfetados: number;
+    total: number;
+  }[];
 }
 
 /**
@@ -252,20 +258,31 @@ export function calculaEmpresa(
     .sort((a, b) => b.indiceGeral - a.indiceGeral)
     .map((l, i) => ({ ...l, posicao: i + 1, classificacao: classificaLider(l.indiceGeral) }));
 
-  // Cultura x caso individual: a dimensão que não vai bem em METADE ou mais
-  // dos líderes deixou de ser problema de pessoa.
+  const indiceGeral = media(lideres.map((l) => l.indiceGeral));
+
+  // Dívida da cultura: a dimensão que puxa a empresa para baixo, isto é, que
+  // fica ABAIXO da média geral. É a régua que reproduz a leitura do Michel no
+  // overview — lá, com média 64, a dívida é Comunicação (54) e Autonomia (63),
+  // e Gestão (64) fica de fora, como frente preventiva.
   const padraoSistemico = DIMENSOES.map((d, i) => {
     const avaliados = lideres.filter((l) => l.porDimensao[i] !== null);
     const afetados = avaliados.filter((l) => band(l.porDimensao[i] as number) !== "hi");
-    return { chave: d.chave, nome: d.nome, lideresAfetados: afetados.length, total: avaliados.length };
+    const dim = porDimensao.find((x) => x.chave === d.chave);
+    return {
+      chave: d.chave,
+      nome: d.nome,
+      valor: dim?.valor ?? null,
+      lideresAfetados: afetados.length,
+      total: avaliados.length,
+    };
   })
-    .filter((x) => x.total > 0 && x.lideresAfetados * 2 >= x.total)
-    .sort((a, b) => b.lideresAfetados - a.lideresAfetados);
+    .filter((x) => x.total > 0 && x.valor !== null && x.valor < indiceGeral)
+    .sort((a, b) => (a.valor as number) - (b.valor as number));
 
   return {
     lideres,
     porDimensao,
-    indiceGeral: media(lideres.map((l) => l.indiceGeral)),
+    indiceGeral,
     ranking,
     padraoSistemico,
   };
