@@ -3,9 +3,11 @@ import { env } from "cloudflare:workers";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "./access-auth";
 import { validaLead, dominioRecebeEmail, type ResultadoValidacao } from "./lead-validacao";
+import { programaDe } from "./programas";
 import {
   calculaLider,
   calculaEmpresa,
+  DIMENSOES,
   media as mediaDe,
   type ItemResposta,
   type RespostaBruta,
@@ -686,4 +688,263 @@ export const adminArchiveCliente = createServerFn({ method: "POST" })
       .eq("id", id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/* ────────────────────  ADMIN — visão geral (o funil)  ──────────────────── */
+
+export type EtapaFunil = "entregues" | "lead" | "campo" | "pronto";
+
+export interface ClienteNoFunil {
+  id: string;
+  empresa: string;
+  chave: string;
+  etapa: EtapaFunil;
+  /** Dias parado na etapa atual — é o que dá urgência à lista. */
+  diasParado: number;
+  responsavel: { nome: string; cargo: string | null; email: string; telefone: string | null } | null;
+  lideres: number;
+  respostas: number;
+  esperadas: number;
+  /** Quando chegou a última resposta (ISO), se houver. */
+  ultimaResposta: string | null;
+  /** Só para quem concluiu. */
+  indiceGeral: number | null;
+  piorDimensao: { nome: string; valor: number } | null;
+  ofertaIndicada: string | null;
+  /** Fechou no dia anterior — alimenta o bloco "desde ontem". */
+  fechouOntem: boolean;
+}
+
+export interface VisaoGeralAdmin {
+  clientes: ClienteNoFunil[];
+  totais: Record<EtapaFunil, { alcancaram: number; parados: number }>;
+  /** Em quantas empresas concluídas cada programa é indicado. */
+  demanda: { programa: string; empresas: number; total: number }[];
+}
+
+/**
+ * Dias de CALENDÁRIO no fuso de Brasília, não períodos de 24h.
+ * Num painel de cobrança "ontem às 20h" tem que dizer "há 1 dia", não "hoje".
+ */
+const FUSO_BR = -3 * 3600000;
+
+function diaBR(ms: number): number {
+  return Math.floor((ms + FUSO_BR) / 86400000);
+}
+
+function diasEntre(iso: string | null, agora: number): number {
+  if (!iso) return 0;
+  return Math.max(0, diaBR(agora) - diaBR(new Date(iso).getTime()));
+}
+
+export const adminVisaoGeral = createServerFn({ method: "GET" }).handler(
+  async (): Promise<VisaoGeralAdmin> => {
+    await requireAdmin();
+    const db = sb();
+    const agora = Date.now();
+
+    const [{ data: clientes, error: e1 }, { data: lideres, error: e2 }, { data: avaliacoes, error: e3 }] =
+      await Promise.all([
+        db.from("clientes").select("*").neq("status", "arquivado").order("created_at", { ascending: false }),
+        db.from("lideres").select("id, cliente_id, nome, cargo"),
+        db.from("avaliacoes").select("id, cliente_id, lider_id, tipo, respondentes_esperados").neq("status", "arquivada"),
+      ]);
+    if (e1) throw new Error(e1.message);
+    if (e2) throw new Error(e2.message);
+    if (e3) throw new Error(e3.message);
+
+    // Primeiro só o leve: quantas respostas e quando chegaram.
+    const idsAv = (avaliacoes ?? []).map((a) => a.id as string);
+    const porAvaliacao = new Map<string, { n: number; ultima: string | null }>();
+    if (idsAv.length) {
+      const { data: rs, error: e4 } = await db
+        .from("respostas")
+        .select("avaliacao_id, created_at")
+        .in("avaliacao_id", idsAv);
+      if (e4) throw new Error(e4.message);
+      for (const r of rs ?? []) {
+        const k = r.avaliacao_id as string;
+        const at = r.created_at as string;
+        const atual = porAvaliacao.get(k) ?? { n: 0, ultima: null };
+        atual.n += 1;
+        if (!atual.ultima || at > atual.ultima) atual.ultima = at;
+        porAvaliacao.set(k, atual);
+      }
+    }
+
+    // Ontem, no fuso de quem opera o painel (Brasil).
+    const ontemBR = diaBR(agora) - 1;
+
+    const saida: ClienteNoFunil[] = [];
+    const prontosParaCalcular: { cliente: ClienteNoFunil; lideresIds: string[] }[] = [];
+
+    for (const c of clientes ?? []) {
+      const meusLideres = (lideres ?? []).filter((l) => l.cliente_id === c.id);
+      const minhasAv = (avaliacoes ?? []).filter((a) => a.cliente_id === c.id);
+
+      const respostas = minhasAv.reduce((s, a) => s + (porAvaliacao.get(a.id as string)?.n ?? 0), 0);
+      const esperadas = minhasAv.reduce((s, a) => s + ((a.respondentes_esperados as number) || 0), 0);
+      const ultimaResposta = minhasAv
+        .map((a) => porAvaliacao.get(a.id as string)?.ultima ?? null)
+        .filter((v): v is string => v !== null)
+        .sort()
+        .pop() ?? null;
+
+      const concluido =
+        minhasAv.length > 0 &&
+        minhasAv.every((a) => {
+          const got = porAvaliacao.get(a.id as string)?.n ?? 0;
+          const exp = (a.respondentes_esperados as number) || 0;
+          return exp > 0 && got >= exp;
+        });
+
+      let etapa: EtapaFunil;
+      let referencia: string | null;
+      if (concluido) {
+        etapa = "pronto";
+        referencia = ultimaResposta;
+      } else if (minhasAv.length > 0) {
+        etapa = "campo";
+        referencia = ultimaResposta ?? (c.lead_preenchido_em as string | null);
+      } else if (c.lead_preenchido_em) {
+        etapa = "lead";
+        referencia = c.lead_preenchido_em as string;
+      } else {
+        etapa = "entregues";
+        referencia = c.created_at as string;
+      }
+
+      const item: ClienteNoFunil = {
+        id: c.id as string,
+        empresa: c.nome_empresa as string,
+        chave: c.chave as string,
+        etapa,
+        diasParado: diasEntre(referencia, agora),
+        responsavel: c.responsavel_email
+          ? {
+              nome: (c.responsavel_nome as string) ?? "",
+              cargo: c.responsavel_cargo as string | null,
+              email: c.responsavel_email as string,
+              telefone: c.responsavel_telefone as string | null,
+            }
+          : null,
+        lideres: meusLideres.length,
+        respostas,
+        esperadas,
+        ultimaResposta,
+        indiceGeral: null,
+        piorDimensao: null,
+        ofertaIndicada: null,
+        // Só quem fechou no dia anterior — nem hoje, nem antes de ontem.
+        fechouOntem:
+          concluido && ultimaResposta ? diaBR(new Date(ultimaResposta).getTime()) === ontemBR : false,
+      };
+
+      saida.push(item);
+      if (concluido) {
+        prontosParaCalcular.push({ cliente: item, lideresIds: meusLideres.map((l) => l.id as string) });
+      }
+    }
+
+    // Só quem concluiu paga o custo do cálculo.
+    const demandaConta = new Map<string, number>();
+    for (const { cliente, lideresIds } of prontosParaCalcular) {
+      const recortes = [];
+      for (const id of lideresIds) {
+        const r = await recorteDoLider(db, id);
+        if (r && (r.calculo.indiceTime !== null || r.calculo.indiceExec !== null)) {
+          recortes.push({ nome: r.nome, cargo: r.cargo, recorte: r.calculo });
+        }
+      }
+      const emp = calculaEmpresa(recortes);
+      if (!emp) continue;
+
+      cliente.indiceGeral = emp.indiceGeral;
+      const pior = emp.porDimensao[0];
+      if (pior) {
+        cliente.piorDimensao = { nome: pior.nome, valor: pior.valor };
+        const def = DIMENSOES.find((d) => d.chave === pior.chave);
+        cliente.ofertaIndicada = def ? programaDe(def.chave).titulo : null;
+      }
+      // Demanda: toda dimensão fora da faixa forte conta para o programa dela.
+      for (const d of emp.porDimensao) {
+        if (d.band === "hi") continue;
+        const def = DIMENSOES.find((x) => x.chave === d.chave);
+        if (!def) continue;
+        const titulo = programaDe(def.chave).titulo;
+        demandaConta.set(titulo, (demandaConta.get(titulo) ?? 0) + 1);
+      }
+    }
+
+    const conta = (e: EtapaFunil) => saida.filter((c) => c.etapa === e).length;
+    const totalProntos = prontosParaCalcular.length;
+
+    return {
+      clientes: saida,
+      totais: {
+        // "Alcançaram" é cumulativo — é o funil. "Parados" é quem está ali agora.
+        entregues: { alcancaram: saida.length, parados: conta("entregues") },
+        lead: {
+          alcancaram: saida.filter((c) => c.etapa !== "entregues").length,
+          parados: conta("lead"),
+        },
+        campo: {
+          alcancaram: saida.filter((c) => c.etapa === "campo" || c.etapa === "pronto").length,
+          parados: conta("campo"),
+        },
+        pronto: { alcancaram: conta("pronto"), parados: conta("pronto") },
+      },
+      demanda: [...demandaConta.entries()]
+        .map(([programa, empresas]) => ({ programa, empresas, total: totalProntos }))
+        .sort((a, b) => b.empresas - a.empresas),
+    };
+  },
+);
+
+/** Panorama de nível 2 pelo id do cliente — a versão que a Korthex enxerga. */
+export const adminPanoramaEmpresa = createServerFn({ method: "GET" })
+  .inputValidator((clienteId: string) => clienteId)
+  .handler(async ({ data: clienteId }): Promise<PanoramaEmpresa | null> => {
+    await requireAdmin();
+    const db = sb();
+
+    const { data: cliente, error } = await db
+      .from("clientes")
+      .select("id, nome_empresa, chave")
+      .eq("id", clienteId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!cliente) return null;
+
+    const { data: lideres, error: e2 } = await db
+      .from("lideres")
+      .select("id, nome, cargo")
+      .eq("cliente_id", clienteId)
+      .order("created_at", { ascending: true });
+    if (e2) throw new Error(e2.message);
+
+    const recortes = [];
+    for (const l of lideres ?? []) {
+      const r = await recorteDoLider(db, l.id as string);
+      if (r && (r.calculo.indiceTime !== null || r.calculo.indiceExec !== null)) {
+        recortes.push({ nome: l.nome as string, cargo: l.cargo as string | null, recorte: r.calculo });
+      }
+    }
+
+    const comTime = recortes.map((r) => r.recorte.indiceTime).filter((v): v is number => v !== null);
+    const comExec = recortes.map((r) => r.recorte.indiceExec).filter((v): v is number => v !== null);
+    const divs = recortes.map((r) => r.recorte.divergencia).filter((v): v is number => v !== null);
+
+    return {
+      empresa: cliente.nome_empresa as string,
+      chave: cliente.chave as string,
+      totalRespondentes: recortes.reduce(
+        (s, r) => s + r.recorte.respondentesTime + r.recorte.respondentesExec,
+        0,
+      ),
+      indiceTime: comTime.length ? mediaDe(comTime) : null,
+      indiceExec: comExec.length ? mediaDe(comExec) : null,
+      divergencia: divs.length ? mediaDe(divs) : null,
+      resultado: calculaEmpresa(recortes),
+    };
   });
