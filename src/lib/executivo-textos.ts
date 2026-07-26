@@ -235,9 +235,11 @@ export function montaResultadoExecutivo(
     .slice(0, 3)
     .map((e) => ({
       destaque: `${e.nome} (${e.valor})`,
+      // Cada linha fecha com o custo próprio daquele eixo — repetir a mesma
+      // frase três vezes faz o leitor parar de ler na segunda.
       texto: e.dividido
-        ? `— ${e.rotulo}, com ${e.amplitude} pontos de distância entre o líder que melhor e o que pior avalia.`
-        : `— ${e.rotulo} na leitura de quem convive com as decisões dele todos os dias.`,
+        ? `— ${e.amplitude} pontos de distância entre o líder que melhor e o que pior avalia · ${e.impactos[0].destaque.toLowerCase()}`
+        : `— ${e.rotulo} · ${e.impactos[0].destaque.toLowerCase()}`,
       tom: "crit" as const,
     }));
 
