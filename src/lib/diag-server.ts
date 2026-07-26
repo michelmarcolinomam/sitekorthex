@@ -5,8 +5,11 @@ import { requireAdmin } from "./access-auth";
 import { validaLead, dominioRecebeEmail, type ResultadoValidacao } from "./lead-validacao";
 import {
   calculaLider,
+  calculaEmpresa,
+  media as mediaDe,
   type ItemResposta,
   type RespostaBruta,
+  type ResultadoEmpresa,
   type ResultadoLiderCalculado,
 } from "./motor-calculo";
 
@@ -534,6 +537,60 @@ async function recorteDoLider(
     calculo: calculaLider(brutas),
   };
 }
+
+export interface PanoramaEmpresa {
+  empresa: string;
+  chave: string;
+  totalRespondentes: number;
+  indiceTime: number | null;
+  indiceExec: number | null;
+  divergencia: number | null;
+  resultado: ResultadoEmpresa | null;
+}
+
+/**
+ * Panorama de nível 2: junta todos os líderes do cliente e agrega.
+ * Só entram líderes que já têm resposta — quem não foi avaliado não conta.
+ */
+export const publicPanoramaEmpresa = createServerFn({ method: "GET" })
+  .inputValidator((chave: string) => chave)
+  .handler(async ({ data }): Promise<PanoramaEmpresa | null> => {
+    const db = sb();
+    const cliente = await clientePorChave(db, data);
+    if (!cliente) return null;
+
+    const { data: lideres, error } = await db
+      .from("lideres")
+      .select("id, nome, cargo")
+      .eq("cliente_id", cliente.id)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+
+    const recortes = [];
+    for (const l of lideres ?? []) {
+      const r = await recorteDoLider(db, l.id as string);
+      if (r && (r.calculo.indiceTime !== null || r.calculo.indiceExec !== null)) {
+        recortes.push({ nome: l.nome as string, cargo: l.cargo as string | null, recorte: r.calculo });
+      }
+    }
+
+    const comTime = recortes.map((r) => r.recorte.indiceTime).filter((v): v is number => v !== null);
+    const comExec = recortes.map((r) => r.recorte.indiceExec).filter((v): v is number => v !== null);
+    const divs = recortes.map((r) => r.recorte.divergencia).filter((v): v is number => v !== null);
+
+    return {
+      empresa: cliente.nome_empresa,
+      chave: cliente.chave,
+      totalRespondentes: recortes.reduce(
+        (s, r) => s + r.recorte.respondentesTime + r.recorte.respondentesExec,
+        0,
+      ),
+      indiceTime: comTime.length ? mediaDe(comTime) : null,
+      indiceExec: comExec.length ? mediaDe(comExec) : null,
+      divergencia: divs.length ? mediaDe(divs) : null,
+      resultado: calculaEmpresa(recortes),
+    };
+  });
 
 /**
  * Resultado visto pela PRÓPRIA EMPRESA, dentro do painel dela.

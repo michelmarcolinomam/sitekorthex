@@ -644,6 +644,9 @@ function MapaTeaser({ painel }: { painel: PainelCliente }) {
     const got = painel.respostasPorAvaliacao[a.id] ?? 0;
     return a.respondentes_esperados > 0 && got >= a.respondentes_esperados;
   }).length;
+  const respondidas = painel.avaliacoes.filter(
+    (a) => (painel.respostasPorAvaliacao[a.id] ?? 0) > 0,
+  ).length;
   const liberado = concluidas === total;
 
   return (
@@ -665,10 +668,13 @@ function MapaTeaser({ painel }: { painel: PainelCliente }) {
           {concluidas} de {total} concluídas
         </span>
       </div>
-      {liberado ? (
-        <p className="mt-4 text-sm font-medium text-primary">
-          Tudo respondido — a Korthex vai preparar a sua leitura.
-        </p>
+      {respondidas > 0 ? (
+        <a
+          href={`/diagnosticos/${painel.chave}/mapa`}
+          className="mt-5 inline-block rounded-full bg-primary px-7 py-3 text-[11px] uppercase tracking-[0.2em] text-white transition-colors hover:bg-primary/90"
+        >
+          {liberado ? "Ver o mapa da liderança" : "Ver o mapa parcial"}
+        </a>
       ) : null}
     </section>
   );

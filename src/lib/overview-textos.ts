@@ -1,0 +1,203 @@
+/**
+ * Monta o panorama da empresa a partir do que o motor calculou.
+ *
+ * Mesma divisão da tela do líder: o motor entrega números, aqui eles viram
+ * frases. Os textos seguem a leitura que o Michel escreveu no protótipo de
+ * nível 2 — cultura versus caso individual.
+ */
+
+import { band, classificaLider, ROTULO_BAND, DIMENSOES, type ResultadoEmpresa } from "./motor-calculo";
+import { programaDe, MESMO_EIXO } from "./programas";
+import type {
+  Faixa,
+  ItemCultura,
+  OfertaGrupo,
+  OverviewEmpresaDados,
+} from "@/components/diagnosticos/OverviewEmpresa";
+
+const CHIP_CLASSE: Record<string, string> = {
+  ref: "ch-ref",
+  ok: "ch-ok",
+  ment: "ch-ment",
+  emerg: "ch-emerg",
+};
+
+export interface ContextoEmpresa {
+  empresa: string;
+  periodo: string;
+  totalRespondentes: number;
+  indiceTime: number | null;
+  indiceExec: number | null;
+  divergencia: number | null;
+}
+
+export function montaOverview(ctx: ContextoEmpresa, emp: ResultadoEmpresa): OverviewEmpresaDados {
+  const dimensoes = emp.porDimensao.map((d) => {
+    const def = DIMENSOES.find((x) => x.chave === d.chave)!;
+    return {
+      nome: d.nome,
+      curto: def.curto,
+      valor: d.valor,
+      faixa: d.band as Faixa,
+      rotulo: ROTULO_BAND[d.band],
+    };
+  });
+
+  // A matriz segue a mesma ordem de colunas do mapa (pior primeiro).
+  const ordemColunas = dimensoes.map((d) => DIMENSOES.findIndex((x) => x.nome === d.nome));
+
+  const matriz = emp.ranking.map((l) => ({
+    nome: l.nome,
+    cargo: l.cargo,
+    celulas: ordemColunas.map((idx) => {
+      const v = l.porDimensao[idx];
+      return { valor: v, faixa: v === null ? null : (band(v) as Faixa) };
+    }),
+    media: l.indiceGeral,
+    faixaMedia: band(l.indiceGeral) as Faixa,
+    classificacao: l.classificacao.rotulo,
+    chipClasse: CHIP_CLASSE[l.classificacao.chave] ?? "ch-ok",
+  }));
+
+  const mediaLinha = {
+    celulas: dimensoes.map((d) => ({ valor: d.valor, faixa: d.faixa })),
+    media: emp.indiceGeral,
+  };
+
+  const dividasChaves = new Set(emp.padraoSistemico.map((p) => p.chave));
+  const colunasDebito = dimensoes.filter((d) => {
+    const def = DIMENSOES.find((x) => x.nome === d.nome)!;
+    return dividasChaves.has(def.chave);
+  }).map((d) => d.curto);
+
+  /* ── insight ──
+     Cuidado deliberado: só é "padrão de cultura" quando há líderes suficientes
+     para o padrão existir. Com um líder só, isto é o recorte dele, e afirmar
+     cultura seria mentira. */
+  const totalLideres = emp.lideres.length;
+  const pior = dimensoes[0];
+  const afetadosNoPior = emp.padraoSistemico.find((p) => p.nome === pior?.nome);
+  const plural = (n: number) => (n === 1 ? "líder" : "líderes");
+
+  const evidencia = !afetadosNoPior
+    ? ". É por onde a leitura da liderança começa."
+    : totalLideres >= 3
+      ? `, com **${afetadosNoPior.lideresAfetados} de ${afetadosNoPior.total} ${plural(afetadosNoPior.total)}** fora da faixa forte. Não é problema de uma pessoa — é um **padrão de cultura**.`
+      : totalLideres === 2
+        ? `, presente nos **dois líderes avaliados**. Com mais lideranças avaliadas dá para dizer se é padrão de cultura ou coincidência.`
+        : `. Por enquanto esta é a leitura de **um único líder** — o mapa da empresa ganha sentido quando houver mais lideranças avaliadas.`;
+
+  const insight = !pior
+    ? "Ainda não há avaliações suficientes para desenhar o panorama."
+    : `**${pior.nome} é a competência mais frágil${totalLideres >= 2 ? " da companhia" : ""}**: índice **${pior.valor}**` +
+      evidencia +
+      (ctx.divergencia !== null && Math.abs(ctx.divergencia) >= 5
+        ? ` E ${ctx.divergencia > 0 ? "os sócios avaliam a liderança" : "as equipes avaliam a liderança"} **${Math.abs(ctx.divergencia)} pontos** acima do que ${ctx.divergencia > 0 ? "as equipes de fato sentem" : "o topo reconhece"}.`
+        : "");
+
+  /* ── força e dívida da cultura ── */
+  const forcas: ItemCultura[] = dimensoes
+    .filter((d) => d.faixa === "hi")
+    .slice(0, 3)
+    .map((d) => ({
+      destaque: `${d.nome} (${d.valor})`,
+      texto: "— competência consolidada no grupo. Base sólida para construir o resto.",
+      tom: "good" as const,
+    }));
+
+  const dividas: ItemCultura[] = emp.padraoSistemico.slice(0, 3).map((p) => ({
+    destaque: `${p.nome} (${p.valor})`,
+    texto: `— abaixo da média da empresa, com ${p.lideresAfetados} de ${p.total} ${p.total === 1 ? "líder" : "líderes"} fora da faixa forte.${totalLideres >= 3 ? " Custo espalhado por toda a operação." : ""}`,
+    tom: "crit" as const,
+  }));
+
+  /* ── oferta ── */
+  function ofertaDe(nome: string, valor: number, faixa: Faixa, prioritaria: boolean): OfertaGrupo {
+    const def = DIMENSOES.find((x) => x.nome === nome)!;
+    const p = programaDe(def.chave);
+    const afetados = emp.padraoSistemico.find((x) => x.chave === def.chave);
+    return {
+      rotulo: prioritaria
+        ? `Frente prioritária · corrigir o que está frágil`
+        : `Responde a ${nome} · ${valor} · atenção`,
+      titulo: prioritaria ? `Treinamento em Grupo · ${p.titulo}` : p.titulo,
+      subtitulo: "Treinamento em grupo · Korthex Liderança",
+      descricao: p.corpo,
+      desenvolve: p.impactos,
+      destrava: p.destrava,
+      faixa,
+      porque: prioritaria
+        ? `**Por que em grupo:** a fragilidade em ${nome} (${valor}) atravessa a liderança${afetados ? ` — ${afetados.lideresAfetados} de ${afetados.total} líderes` : ""}. É **cultura, não pessoa**. Um treinamento aplicado ao grupo cria linguagem comum e custa uma fração de ${emp.lideres.length} processos individuais.`
+        : `**Por que agora:** ${nome} está em ${valor}, ainda na faixa de atenção. Treinar agora custa uma fração do que custa recuperar depois de quebrada.`,
+    };
+  }
+
+  const frageis = dimensoes.filter((d) => d.faixa === "lo");
+  const atencao = dimensoes.filter((d) => d.faixa === "mid");
+
+  const ofertaPrioritaria = frageis.length
+    ? ofertaDe(frageis[0].nome, frageis[0].valor, frageis[0].faixa, true)
+    : null;
+
+  const restantes = [...frageis.slice(1), ...atencao];
+  const ofertasPreventivas = restantes.map((d) => ofertaDe(d.nome, d.valor, d.faixa, false));
+
+  // Estabilidade e Autonomia partem do mesmo eixo — vale ofertar junto.
+  const chavesOfertadas = new Set(
+    restantes.map((d) => DIMENSOES.find((x) => x.nome === d.nome)!.chave),
+  );
+  if (MESMO_EIXO.every((c) => chavesOfertadas.has(c)) && ofertasPreventivas.length) {
+    const ultima = ofertasPreventivas[ofertasPreventivas.length - 1];
+    ultima.nota =
+      "**Vale combinar:** esta frente e a de Estabilidade Emocional partem do mesmo eixo — um único treinamento de Gestão das Emoções & Autorresponsabilidade, com os dois focos, cobre as duas zonas de atenção de uma vez.";
+  }
+
+  /* ── frentes complementares: quem puxa para baixo e quem multiplica ── */
+  const complementares: ItemCultura[] = [];
+  const precisamMentoria = emp.ranking.filter(
+    (l) => l.classificacao.chave === "ment" || l.classificacao.chave === "emerg",
+  );
+  // Ninguém é gargalo e multiplicador ao mesmo tempo: quem precisa de mentoria
+  // sai da lista de quem pode ancorar a cultura.
+  const multiplicadores = emp.ranking
+    .filter((l) => l.classificacao.chave === "ref" || l.classificacao.chave === "ok")
+    .filter((l) => l.indiceGeral >= emp.indiceGeral)
+    .slice(0, 2);
+
+  if (precisamMentoria.length) {
+    complementares.push({
+      destaque: precisamMentoria.map((l) => `${l.nome} (${l.indiceGeral})`).join(" e "),
+      texto:
+        totalLideres >= 2
+          ? `— ${precisamMentoria.length === 1 ? "está" : "estão"} abaixo da média e ${precisamMentoria.length === 1 ? "puxa" : "puxam"} o índice da empresa para baixo. A mentoria individual acelera o grupo inteiro.`
+          : `— pela régua da Korthex, este é o acompanhamento indicado para o momento dele.`,
+      tom: "crit",
+    });
+  }
+  if (multiplicadores.length) {
+    complementares.push({
+      destaque: multiplicadores.map((l) => `${l.nome} (${l.indiceGeral})`).join(" e "),
+      texto: "— as lideranças mais maduras podem ancorar a cultura e ajudar a formar as demais. Ativo interno a aproveitar, não só a desenvolver.",
+      tom: "good",
+    });
+  }
+
+  return {
+    empresa: ctx.empresa,
+    meta: `${emp.lideres.length} ${emp.lideres.length === 1 ? "líder avaliado" : "líderes avaliados"} · ${ctx.totalRespondentes} ${ctx.totalRespondentes === 1 ? "respondente" : "respondentes"} · ${ctx.periodo}`,
+    indiceGeral: emp.indiceGeral,
+    indiceTime: ctx.indiceTime,
+    indiceExec: ctx.indiceExec,
+    divergencia: ctx.divergencia === null ? "—" : `${ctx.divergencia > 0 ? "+" : ""}${ctx.divergencia}`,
+    insight,
+    dimensoes,
+    colunasDebito,
+    matriz,
+    mediaLinha,
+    forcas,
+    dividas,
+    ofertaPrioritaria,
+    ofertasPreventivas,
+    complementares,
+  };
+}
