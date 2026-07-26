@@ -48,8 +48,14 @@ const CATALOGO: {
     disponivel: false,
   },
   {
-    valor: "performance_time",
-    titulo: "Performance do time",
+    valor: "performance_lideranca",
+    titulo: "A liderança avalia a equipe",
+    descricao: "Em breve.",
+    disponivel: false,
+  },
+  {
+    valor: "performance_executivo",
+    titulo: "O executivo avalia a equipe",
     descricao: "Em breve.",
     disponivel: false,
   },
@@ -59,7 +65,8 @@ const TIPO_CURTO: Record<AvaliacaoTipo, string> = {
   lideranca_time: "Visão do time",
   lideranca_executivo: "Visão do executivo",
   executivo_lideranca: "Liderança → executivo",
-  performance_time: "Performance do time",
+  performance_lideranca: "Equipe · visão da liderança",
+  performance_executivo: "Equipe · visão do executivo",
 };
 
 function PainelDoCliente() {

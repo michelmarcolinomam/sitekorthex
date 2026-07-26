@@ -47,11 +47,17 @@ export interface Cliente {
   updated_at: string;
 }
 
+/**
+ * As cinco leituras da série. Cada camada é lida por quem tem expectativa
+ * real sobre ela — e a liderança e o time são lidos por DOIS lados, porque a
+ * exigência de quem conduz não é a mesma de quem cobra o resultado.
+ */
 export type AvaliacaoTipo =
   | "lideranca_time"
   | "lideranca_executivo"
   | "executivo_lideranca"
-  | "performance_time";
+  | "performance_lideranca"
+  | "performance_executivo";
 
 export interface Lider {
   id: string;
@@ -97,7 +103,8 @@ const TIPOS_VALIDOS: AvaliacaoTipo[] = [
   "lideranca_time",
   "lideranca_executivo",
   "executivo_lideranca",
-  "performance_time",
+  "performance_lideranca",
+  "performance_executivo",
 ];
 
 /** Óticas que já têm questionário pronto — as outras não podem ser geradas. */
