@@ -4,8 +4,10 @@ import {
   publicGetPainel,
   publicSalvarLead,
   publicCreateAvaliacoes,
+  TIPOS_POR_PAPEL,
   publicArchiveAvaliacao,
   type AvaliacaoTipo,
+  type PapelAvaliado,
   type PainelCliente,
 } from "@/lib/diag-server";
 import { validaLead } from "@/lib/lead-validacao";
@@ -22,51 +24,93 @@ export const Route = createFileRoute("/diagnosticos/$chave")({
   component: PainelDoCliente,
 });
 
-/** Catálogo de diagnósticos que a empresa pode aplicar. */
-const CATALOGO: {
-  valor: AvaliacaoTipo;
+/**
+ * O que a empresa pode diagnosticar. Cada papel abre as óticas que fazem
+ * sentido para ele — ninguém gera "o time avalia" para uma equipe, nem
+ * "a liderança avalia o executivo" para um líder.
+ */
+const PAPEIS: {
+  papel: PapelAvaliado;
   titulo: string;
   descricao: string;
-  disponivel: boolean;
+  rotuloNome: string;
+  exemploNome: string;
+  rotuloCargo: string;
+  exemploCargo: string;
 }[] = [
   {
-    valor: "lideranca_time",
-    titulo: "Visão do time",
-    descricao: "Os liderados avaliam a liderança — a leitura de baixo para cima.",
-    disponivel: true,
+    papel: "lider",
+    titulo: "Uma liderança",
+    descricao: "Coordenador, supervisor ou gerente — lido por baixo e por cima.",
+    rotuloNome: "Líder a ser avaliado",
+    exemploNome: "Ex.: Marina Prado",
+    rotuloCargo: "Cargo",
+    exemploCargo: "Ex.: Gerente de Operações",
   },
   {
-    valor: "lideranca_executivo",
-    titulo: "Visão do executivo",
-    descricao: "Sócios e diretoria avaliam a liderança — a leitura de cima para baixo.",
-    disponivel: true,
+    papel: "executivo",
+    titulo: "Um executivo",
+    descricao: "Fundador, sócio ou diretor — lido pela liderança abaixo dele.",
+    rotuloNome: "Executivo a ser avaliado",
+    exemploNome: "Ex.: Eduardo Nassar",
+    rotuloCargo: "Cargo",
+    exemploCargo: "Ex.: Fundador e CEO",
   },
   {
-    valor: "executivo_lideranca",
-    titulo: "Liderança avalia o executivo",
-    descricao: "Em breve.",
-    disponivel: false,
-  },
-  {
-    valor: "performance_lideranca",
-    titulo: "A liderança avalia a equipe",
-    descricao: "Em breve.",
-    disponivel: false,
-  },
-  {
-    valor: "performance_executivo",
-    titulo: "O executivo avalia a equipe",
-    descricao: "Em breve.",
-    disponivel: false,
+    papel: "equipe",
+    titulo: "Uma equipe",
+    descricao: "O time como conjunto — lido por quem o conduz e por quem cobra o resultado.",
+    rotuloNome: "Como identificar a equipe",
+    exemploNome: "Ex.: Equipe Comercial",
+    rotuloCargo: "Área ou responsável",
+    exemploCargo: "Ex.: Marina Prado",
   },
 ];
+
+const OTICAS: Record<
+  AvaliacaoTipo,
+  { titulo: string; descricao: string; padrao: number; nota?: string }
+> = {
+  lideranca_time: {
+    titulo: "Visão do time",
+    descricao: "Os liderados avaliam a liderança — a leitura de baixo para cima.",
+    padrao: 6,
+  },
+  lideranca_executivo: {
+    titulo: "Visão do executivo",
+    descricao: "Sócios e diretoria avaliam a liderança — a leitura de cima para baixo.",
+    padrao: 2,
+  },
+  executivo_lideranca: {
+    titulo: "Visão da liderança",
+    descricao: "Os líderes que se reportam a ele avaliam a condução do topo.",
+    padrao: 4,
+    nota: "Anônimo: o relatório só é liberado a partir de 3 respostas.",
+  },
+  performance_lideranca: {
+    titulo: "Visão de quem conduz",
+    descricao: "O líder da equipe avalia o time: engajamento, cumprimento, diálogo, colaboração.",
+    padrao: 1,
+  },
+  performance_executivo: {
+    titulo: "Visão de quem cobra o resultado",
+    descricao: "O dono ou diretor avalia a mesma equipe: entrega, prazo, erro, previsibilidade.",
+    padrao: 1,
+  },
+};
 
 const TIPO_CURTO: Record<AvaliacaoTipo, string> = {
   lideranca_time: "Visão do time",
   lideranca_executivo: "Visão do executivo",
-  executivo_lideranca: "Liderança → executivo",
-  performance_lideranca: "Equipe · visão da liderança",
-  performance_executivo: "Equipe · visão do executivo",
+  executivo_lideranca: "Visão da liderança",
+  performance_lideranca: "Equipe · quem conduz",
+  performance_executivo: "Equipe · quem cobra",
+};
+
+const ROTULO_PAPEL: Record<PapelAvaliado, string> = {
+  lider: "Liderança",
+  executivo: "Executivo",
+  equipe: "Equipe",
 };
 
 function PainelDoCliente() {
@@ -354,7 +398,7 @@ function CabecalhoPainel({ painel }: { painel: PainelCliente }) {
       </p>
 
       <div className="mt-8 flex flex-wrap gap-8">
-        <Kpi valor={lideres} rotulo="Líderes em avaliação" />
+        <Kpi valor={lideres} rotulo="Avaliados em andamento" />
         <Kpi valor={painel.avaliacoes.length} rotulo="Avaliações geradas" />
         <Kpi valor={respostas} rotulo="Respostas recebidas" />
       </div>
@@ -374,16 +418,36 @@ function Kpi({ valor, rotulo }: { valor: number; rotulo: string }) {
 function GerarAvaliacao({ chave }: { chave: string }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
+  const [papel, setPapel] = useState<PapelAvaliado>("lider");
   const [nome, setNome] = useState("");
   const [cargo, setCargo] = useState("");
-  const [esperados, setEsperados] = useState("6");
-  const [tipos, setTipos] = useState<AvaliacaoTipo[]>(["lideranca_time"]);
+  const [tamanho, setTamanho] = useState("");
+  // Uma ótica marcada guarda também quantas pessoas vão responder ELA — o
+  // número é diferente por ótica: seis liderados, dois sócios, um dono.
+  const [marcadas, setMarcadas] = useState<Record<string, number>>({ lideranca_time: 6 });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
-  const alternar = (t: AvaliacaoTipo) =>
-    setTipos((atual) => (atual.includes(t) ? atual.filter((x) => x !== t) : [...atual, t]));
+  const def = PAPEIS.find((p) => p.papel === papel)!;
+  const oticasDoPapel = TIPOS_POR_PAPEL[papel];
+
+  function trocarPapel(novo: PapelAvaliado) {
+    setPapel(novo);
+    setTamanho("");
+    // Cada papel começa com a sua ótica principal já marcada.
+    const primeira = TIPOS_POR_PAPEL[novo][0];
+    setMarcadas({ [primeira]: OTICAS[primeira].padrao });
+  }
+
+  function alternar(tipo: AvaliacaoTipo) {
+    setMarcadas((atual) => {
+      const copia = { ...atual };
+      if (tipo in copia) delete copia[tipo];
+      else copia[tipo] = OTICAS[tipo].padrao;
+      return copia;
+    });
+  }
 
   const gerar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -395,16 +459,21 @@ function GerarAvaliacao({ chave }: { chave: string }) {
       const r = await publicCreateAvaliacoes({
         data: {
           chave,
-          lider_nome: nome,
-          lider_cargo: cargo,
-          tipos,
-          respondentes_esperados: Number(esperados) || 0,
+          papel,
+          nome,
+          cargo,
+          tamanho: papel === "equipe" ? Number(tamanho) || undefined : undefined,
+          oticas: Object.entries(marcadas).map(([tipo, respondentes]) => ({
+            tipo: tipo as AvaliacaoTipo,
+            respondentes,
+          })),
         },
       });
       setNome("");
       setCargo("");
+      setTamanho("");
       if (r.criadas === 0) {
-        setAviso("Esse líder já tem avaliação aberta nessas óticas — nada foi duplicado.");
+        setAviso("Já existe avaliação aberta nessas óticas — nada foi duplicado.");
       } else {
         setAberto(false);
       }
@@ -440,64 +509,130 @@ function GerarAvaliacao({ chave }: { chave: string }) {
         </button>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-3">
-        <div className="md:col-span-2">
-          <label className={ROTULO} htmlFor="lider-nome">Líder a ser avaliado *</label>
+      <p className={ROTULO}>O que você quer diagnosticar?</p>
+      <div className="grid gap-3 md:grid-cols-3">
+        {PAPEIS.map((p) => (
+          <button
+            key={p.papel}
+            type="button"
+            onClick={() => trocarPapel(p.papel)}
+            className={`rounded-md border p-4 text-left transition-colors ${
+              papel === p.papel
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/40"
+            }`}
+          >
+            <span className="block text-sm font-medium">{p.titulo}</span>
+            <span className="mt-1 block text-xs leading-relaxed text-foreground/50">
+              {p.descricao}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-7 grid gap-5 md:grid-cols-3">
+        <div className={papel === "equipe" ? "md:col-span-2" : "md:col-span-3"}>
+          <label className={ROTULO} htmlFor="av-nome">
+            {def.rotuloNome} *
+          </label>
           <input
-            id="lider-nome"
+            id="av-nome"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            placeholder="Ex.: Marina Prado"
+            placeholder={def.exemploNome}
             className={CAMPO}
           />
         </div>
-        <div>
-          <label className={ROTULO} htmlFor="lider-esperados">Respondentes esperados</label>
-          <input
-            id="lider-esperados"
-            type="number"
-            min={0}
-            max={200}
-            value={esperados}
-            onChange={(e) => setEsperados(e.target.value)}
-            className={CAMPO}
-          />
-        </div>
+        {papel === "equipe" ? (
+          <div>
+            <label className={ROTULO} htmlFor="av-tamanho">
+              Quantas pessoas
+            </label>
+            <input
+              id="av-tamanho"
+              type="number"
+              min={1}
+              max={500}
+              value={tamanho}
+              onChange={(e) => setTamanho(e.target.value)}
+              placeholder="Ex.: 9"
+              className={CAMPO}
+            />
+          </div>
+        ) : null}
         <div className="md:col-span-3">
-          <label className={ROTULO} htmlFor="lider-cargo">Cargo</label>
+          <label className={ROTULO} htmlFor="av-cargo">
+            {def.rotuloCargo}
+          </label>
           <input
-            id="lider-cargo"
+            id="av-cargo"
             value={cargo}
             onChange={(e) => setCargo(e.target.value)}
-            placeholder="Ex.: Gerente de Operações"
+            placeholder={def.exemploCargo}
             className={CAMPO}
           />
         </div>
       </div>
 
-      <p className={`${ROTULO} mt-7`}>Quem vai avaliar este líder?</p>
-      <div className="grid gap-3 md:grid-cols-2">
-        {CATALOGO.map((c) => {
-          const marcado = tipos.includes(c.valor);
+      {papel === "equipe" ? (
+        <p className="mt-3 text-xs leading-relaxed text-foreground/50">
+          O diagnóstico da equipe lê o time como conjunto — não gera nota por pessoa. Com menos de
+          três pessoas, o relatório avisa que ali o retrato é de indivíduo.
+        </p>
+      ) : null}
+
+      <p className={`${ROTULO} mt-7`}>
+        {papel === "equipe" ? "Quem vai avaliar esta equipe?" : `Quem vai avaliar ${papel === "executivo" ? "este executivo" : "este líder"}?`}
+      </p>
+      <div className="grid gap-3">
+        {oticasDoPapel.map((tipo) => {
+          const o = OTICAS[tipo];
+          const marcada = tipo in marcadas;
           return (
-            <label
-              key={c.valor}
-              className={`flex gap-3 rounded-md border p-4 transition-colors ${
-                marcado ? "border-primary bg-primary/5" : "border-border"
-              } ${c.disponivel ? "cursor-pointer hover:border-primary/40" : "opacity-50"}`}
+            <div
+              key={tipo}
+              className={`rounded-md border p-4 transition-colors ${
+                marcada ? "border-primary bg-primary/5" : "border-border"
+              }`}
             >
-              <input
-                type="checkbox"
-                checked={marcado}
-                onChange={() => alternar(c.valor)}
-                disabled={!c.disponivel}
-                className="mt-0.5 accent-[color:var(--primary)]"
-              />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium">{c.titulo}</span>
-                <span className="mt-0.5 block text-xs text-foreground/50">{c.descricao}</span>
-              </span>
-            </label>
+              <div className="flex flex-wrap items-start gap-3">
+                <label className="flex min-w-0 flex-1 cursor-pointer gap-3">
+                  <input
+                    type="checkbox"
+                    checked={marcada}
+                    onChange={() => alternar(tipo)}
+                    className="mt-0.5 accent-[color:var(--primary)]"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">{o.titulo}</span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-foreground/50">
+                      {o.descricao}
+                    </span>
+                    {o.nota ? (
+                      <span className="mt-1 block text-xs text-amber-700">{o.nota}</span>
+                    ) : null}
+                  </span>
+                </label>
+                {marcada ? (
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-foreground/50" htmlFor={`n-${tipo}`}>
+                      respondentes
+                    </label>
+                    <input
+                      id={`n-${tipo}`}
+                      type="number"
+                      min={1}
+                      max={200}
+                      value={marcadas[tipo]}
+                      onChange={(e) =>
+                        setMarcadas((atual) => ({ ...atual, [tipo]: Number(e.target.value) || 0 }))
+                      }
+                      className="w-20 rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
           );
         })}
       </div>
@@ -513,12 +648,24 @@ function GerarAvaliacao({ chave }: { chave: string }) {
         >
           Cancelar
         </button>
-        <button type="submit" disabled={salvando || !nome.trim() || !tipos.length} className={BOTAO}>
+        <button
+          type="submit"
+          disabled={salvando || !nome.trim() || !Object.keys(marcadas).length}
+          className={BOTAO}
+        >
           {salvando ? "Gerando…" : "Gerar avaliação"}
         </button>
       </div>
     </form>
   );
+}
+
+/** Cada papel tem a sua tela de resultado. */
+function destinoResultado(chave: string, avaliado: { id: string; papel?: PapelAvaliado | null }) {
+  const papel = avaliado.papel ?? "lider";
+  if (papel === "executivo") return `/diagnosticos/${chave}/executivo/${avaliado.id}`;
+  if (papel === "equipe") return `/diagnosticos/${chave}/equipe/${avaliado.id}`;
+  return `/diagnosticos/${chave}/lider/${avaliado.id}`;
 }
 
 function ListaLideres({ painel }: { painel: PainelCliente }) {
@@ -546,17 +693,31 @@ function ListaLideres({ painel }: { painel: PainelCliente }) {
       <div className="rounded-xl border border-dashed border-border bg-card px-8 py-16 text-center">
         <p className="text-sm font-medium">Nenhuma avaliação ainda</p>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-foreground/55">
-          Comece por um líder: clique em "Nova avaliação", diga quem será avaliado e
-          quem vai responder. O link do questionário é gerado na hora.
+          Clique em "Nova avaliação", escolha se vai diagnosticar uma liderança, um executivo
+          ou uma equipe, e diga quem vai responder. O link do questionário é gerado na hora.
         </p>
       </div>
     );
   }
 
+  // Agrupa por papel: liderança, executivo e equipe são leituras diferentes e
+  // não devem se misturar numa lista só.
+  const grupos = (["lider", "executivo", "equipe"] as PapelAvaliado[])
+    .map((papel) => ({ papel, itens: comAvaliacao.filter((l) => (l.papel ?? "lider") === papel) }))
+    .filter((g) => g.itens.length);
+
   return (
-    <div className="grid gap-5">
-      <h2 className="text-lg font-semibold">Líderes em avaliação</h2>
-      {comAvaliacao.map((lider) => {
+    <div className="grid gap-10">
+      {grupos.map((grupo) => (
+        <div key={grupo.papel} className="grid gap-5">
+          <h2 className="text-lg font-semibold">
+            {grupo.papel === "lider"
+              ? "Lideranças em avaliação"
+              : grupo.papel === "executivo"
+                ? "Executivos em avaliação"
+                : "Equipes em avaliação"}
+          </h2>
+          {grupo.itens.map((lider) => {
         const suas = painel.avaliacoes.filter((a) => a.lider_id === lider.id);
         const temResposta = suas.some((a) => (painel.respostasPorAvaliacao[a.id] ?? 0) > 0);
         const completo = suas.every((a) => {
@@ -568,11 +729,19 @@ function ListaLideres({ painel }: { painel: PainelCliente }) {
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-base font-semibold">{lider.nome}</h3>
-                {lider.cargo ? <p className="mt-1 text-xs text-foreground/45">{lider.cargo}</p> : null}
+                <p className="mt-1 text-xs text-foreground/45">
+                  {[
+                    ROTULO_PAPEL[(lider.papel ?? "lider") as PapelAvaliado],
+                    lider.cargo,
+                    lider.tamanho ? `${lider.tamanho} pessoas` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
               </div>
               {temResposta ? (
                 <a
-                  href={`/diagnosticos/${painel.chave}/lider/${lider.id}`}
+                  href={destinoResultado(painel.chave, lider)}
                   className="shrink-0 rounded-full border border-primary px-5 py-2 text-[10px] uppercase tracking-[0.16em] text-primary transition-colors hover:bg-primary hover:text-white"
                 >
                   Ver resultado {completo ? "" : "parcial"}
@@ -638,20 +807,30 @@ function ListaLideres({ painel }: { painel: PainelCliente }) {
             </div>
           </section>
         );
-      })}
+          })}
+        </div>
+      ))}
     </div>
   );
 }
 
 function MapaTeaser({ painel }: { painel: PainelCliente }) {
-  const total = painel.avaliacoes.length;
+  // O mapa consolida a LIDERANÇA da empresa — avaliação de equipe e de
+  // executivo tem outra leitura e não entra nesta conta.
+  const deLideranca = new Set(
+    painel.lideres.filter((l) => (l.papel ?? "lider") === "lider").map((l) => l.id),
+  );
+  const avaliacoes = painel.avaliacoes.filter(
+    (a) => a.lider_id !== null && deLideranca.has(a.lider_id),
+  );
+  const total = avaliacoes.length;
   if (total === 0) return null;
 
-  const concluidas = painel.avaliacoes.filter((a) => {
+  const concluidas = avaliacoes.filter((a) => {
     const got = painel.respostasPorAvaliacao[a.id] ?? 0;
     return a.respondentes_esperados > 0 && got >= a.respondentes_esperados;
   }).length;
-  const respondidas = painel.avaliacoes.filter(
+  const respondidas = avaliacoes.filter(
     (a) => (painel.respostasPorAvaliacao[a.id] ?? 0) > 0,
   ).length;
   const liberado = concluidas === total;

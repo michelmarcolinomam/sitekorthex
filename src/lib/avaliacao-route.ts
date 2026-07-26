@@ -12,6 +12,9 @@
 
 import htmlTime from "../questionarios/diagnostico-time.html?raw";
 import htmlExecutivo from "../questionarios/diagnostico-executivo.html?raw";
+import htmlExecutivoAvaliado from "../questionarios/diagnostico-executivo-pela-lideranca.html?raw";
+import htmlEquipeGestao from "../questionarios/diagnostico-time-pela-lideranca.html?raw";
+import htmlEquipeResultado from "../questionarios/diagnostico-time-pelo-executivo.html?raw";
 
 interface Env {
   SUPABASE_URL?: string;
@@ -23,6 +26,9 @@ const CHAVE_AV_RE = /^AV-[A-Z2-9]{4,10}$/;
 const TEMPLATES: Record<string, string> = {
   lideranca_time: htmlTime,
   lideranca_executivo: htmlExecutivo,
+  executivo_lideranca: htmlExecutivoAvaliado,
+  performance_lideranca: htmlEquipeGestao,
+  performance_executivo: htmlEquipeResultado,
 };
 
 interface AvaliacaoInfo {

@@ -59,11 +59,18 @@ export type AvaliacaoTipo =
   | "performance_lideranca"
   | "performance_executivo";
 
+/** O que está sendo avaliado. A tabela ainda se chama `lideres` por causa das
+ *  chaves estrangeiras já em uso; o papel é que diz do que se trata. */
+export type PapelAvaliado = "lider" | "executivo" | "equipe";
+
 export interface Lider {
   id: string;
   cliente_id: string;
   nome: string;
   cargo: string | null;
+  papel: PapelAvaliado;
+  /** Número de pessoas — só existe quando o papel é equipe. */
+  tamanho: number | null;
   created_at: string;
 }
 
@@ -108,7 +115,23 @@ const TIPOS_VALIDOS: AvaliacaoTipo[] = [
 ];
 
 /** Óticas que já têm questionário pronto — as outras não podem ser geradas. */
-const TIPOS_DISPONIVEIS: AvaliacaoTipo[] = ["lideranca_time", "lideranca_executivo"];
+const TIPOS_DISPONIVEIS: AvaliacaoTipo[] = [
+  "lideranca_time",
+  "lideranca_executivo",
+  "executivo_lideranca",
+  "performance_lideranca",
+  "performance_executivo",
+];
+
+/**
+ * Quais óticas cabem em cada papel. É a regra que impede gerar, por exemplo,
+ * "o time avalia" para uma equipe — quem avalia a equipe é a camada de cima.
+ */
+export const TIPOS_POR_PAPEL: Record<PapelAvaliado, AvaliacaoTipo[]> = {
+  lider: ["lideranca_time", "lideranca_executivo"],
+  executivo: ["executivo_lideranca"],
+  equipe: ["performance_lideranca", "performance_executivo"],
+};
 
 function normalizaChave(chave: string): string | null {
   const c = (chave ?? "").trim().toUpperCase();
@@ -248,10 +271,13 @@ export const publicCreateAvaliacoes = createServerFn({ method: "POST" })
   .inputValidator(
     (input: {
       chave: string;
-      lider_nome: string;
-      lider_cargo?: string;
-      tipos: AvaliacaoTipo[];
-      respondentes_esperados?: number;
+      papel: PapelAvaliado;
+      nome: string;
+      cargo?: string;
+      /** Só para equipe: quantas pessoas. Quem informa é o RH, nunca quem responde. */
+      tamanho?: number;
+      /** Uma entrada por ótica escolhida, com quantos vão responder aquela. */
+      oticas: { tipo: AvaliacaoTipo; respondentes: number }[];
     }) => input,
   )
   .handler(async ({ data }): Promise<{ criadas: number; jaExistiam: number }> => {
@@ -262,67 +288,83 @@ export const publicCreateAvaliacoes = createServerFn({ method: "POST" })
     if (!cliente.lead_preenchido_em)
       throw new Error("Preencha os dados do responsável antes de gerar avaliações.");
 
-    const nome = data.lider_nome?.trim();
-    if (!nome) throw new Error("Informe o nome do líder a ser avaliado.");
+    const papel: PapelAvaliado = data.papel;
+    if (!TIPOS_POR_PAPEL[papel]) throw new Error("Escolha o que vai ser avaliado.");
 
-    const tipos = (data.tipos ?? []).filter(
-      (t) => TIPOS_VALIDOS.includes(t) && TIPOS_DISPONIVEIS.includes(t),
+    const nome = data.nome?.trim();
+    if (!nome)
+      throw new Error(
+        papel === "equipe" ? "Informe de quem é a equipe." : "Informe o nome de quem será avaliado.",
+      );
+
+    // A ótica tem que caber no papel: ninguém gera "o time avalia" para uma
+    // equipe, nem "a liderança avalia o executivo" para um líder.
+    const permitidos = TIPOS_POR_PAPEL[papel];
+    const oticas = (data.oticas ?? []).filter(
+      (o) => permitidos.includes(o.tipo) && TIPOS_DISPONIVEIS.includes(o.tipo),
     );
-    if (!tipos.length) throw new Error("Escolha ao menos uma ótica de avaliação.");
+    if (!oticas.length) throw new Error("Escolha ao menos uma ótica de avaliação.");
 
-    const esperados = Math.max(0, Math.min(200, Math.trunc(data.respondentes_esperados ?? 0)));
+    const tamanho =
+      papel === "equipe" && data.tamanho ? Math.max(1, Math.min(500, Math.trunc(data.tamanho))) : null;
 
+    // Reaproveita o avaliado de mesmo nome NO MESMO PAPEL — um líder e uma
+    // equipe podem carregar o nome da mesma pessoa sem se misturarem.
     const { data: existente, error: eBusca } = await db
       .from("lideres")
       .select("id")
       .eq("cliente_id", cliente.id)
+      .eq("papel", papel)
       .ilike("nome", nome)
       .maybeSingle();
     if (eBusca) throw new Error(eBusca.message);
 
-    let liderId = existente?.id as string | undefined;
-    if (!liderId) {
-      const { data: novo, error: eIns } = await db
+    let avaliadoId = existente?.id as string | undefined;
+    if (!avaliadoId) {
+      const { data: novoAvaliado, error: eIns } = await db
         .from("lideres")
         .insert({
           cliente_id: cliente.id,
           nome: nome.slice(0, 120),
-          cargo: data.lider_cargo?.trim().slice(0, 120) || null,
+          cargo: data.cargo?.trim().slice(0, 120) || null,
+          papel,
+          tamanho,
         })
         .select("id")
         .single();
       if (eIns) throw new Error(eIns.message);
-      liderId = novo.id as string;
-    } else if (data.lider_cargo?.trim()) {
-      await db
-        .from("lideres")
-        .update({ cargo: data.lider_cargo.trim().slice(0, 120) })
-        .eq("id", liderId);
+      avaliadoId = novoAvaliado.id as string;
+    } else {
+      const patch: Record<string, unknown> = {};
+      if (data.cargo?.trim()) patch.cargo = data.cargo.trim().slice(0, 120);
+      if (tamanho !== null) patch.tamanho = tamanho;
+      if (Object.keys(patch).length) await db.from("lideres").update(patch).eq("id", avaliadoId);
     }
 
     const { data: jaTem, error: eJa } = await db
       .from("avaliacoes")
       .select("tipo")
-      .eq("lider_id", liderId)
+      .eq("lider_id", avaliadoId)
       .neq("status", "arquivada");
     if (eJa) throw new Error(eJa.message);
 
     const ocupados = new Set((jaTem ?? []).map((a) => a.tipo as string));
-    const novos = tipos.filter((t) => !ocupados.has(t));
-    if (!novos.length) return { criadas: 0, jaExistiam: tipos.length };
+    const novas = oticas.filter((o) => !ocupados.has(o.tipo));
+    if (!novas.length) return { criadas: 0, jaExistiam: oticas.length };
 
     const { error: eAv } = await db.from("avaliacoes").insert(
-      novos.map((tipo) => ({
+      novas.map((o) => ({
         cliente_id: cliente.id,
-        lider_id: liderId,
-        tipo,
-        respondentes_esperados: esperados,
+        lider_id: avaliadoId,
+        tipo: o.tipo,
+        respondentes_esperados: Math.max(0, Math.min(200, Math.trunc(o.respondentes || 0))),
       })),
     );
     if (eAv) throw new Error(eAv.message);
 
-    return { criadas: novos.length, jaExistiam: tipos.length - novos.length };
+    return { criadas: novas.length, jaExistiam: oticas.length - novas.length };
   });
+
 
 /** A empresa arquiva uma avaliação própria. Só toca no que é dela. */
 export const publicArchiveAvaliacao = createServerFn({ method: "POST" })
