@@ -30,8 +30,12 @@ import { Route as AdminDiagnosticosResultadoEquipeExemploRouteImport } from './r
 import { Route as AdminDiagnosticosClientesRouteImport } from './routes/admin.diagnosticos.clientes'
 import { Route as AdminDiagnosticosIdRouteImport } from './routes/admin.diagnosticos.$id'
 import { Route as DiagnosticosChaveLiderIdRouteImport } from './routes/diagnosticos.$chave_.lider.$id'
+import { Route as DiagnosticosChaveExecutivoIdRouteImport } from './routes/diagnosticos.$chave_.executivo.$id'
+import { Route as DiagnosticosChaveEquipeIdRouteImport } from './routes/diagnosticos.$chave_.equipe.$id'
 import { Route as AdminDiagnosticosOfertaIdRouteImport } from './routes/admin.diagnosticos.oferta.$id'
 import { Route as AdminDiagnosticosLiderIdRouteImport } from './routes/admin.diagnosticos.lider.$id'
+import { Route as AdminDiagnosticosExecutivoIdRouteImport } from './routes/admin.diagnosticos.executivo.$id'
+import { Route as AdminDiagnosticosEquipeIdRouteImport } from './routes/admin.diagnosticos.equipe.$id'
 import { Route as AdminDiagnosticosEmpresaIdRouteImport } from './routes/admin.diagnosticos.empresa.$id'
 
 const PerformanceRoute = PerformanceRouteImport.update({
@@ -144,6 +148,18 @@ const DiagnosticosChaveLiderIdRoute =
     path: '/diagnosticos/$chave/lider/$id',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DiagnosticosChaveExecutivoIdRoute =
+  DiagnosticosChaveExecutivoIdRouteImport.update({
+    id: '/diagnosticos/$chave_/executivo/$id',
+    path: '/diagnosticos/$chave/executivo/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DiagnosticosChaveEquipeIdRoute =
+  DiagnosticosChaveEquipeIdRouteImport.update({
+    id: '/diagnosticos/$chave_/equipe/$id',
+    path: '/diagnosticos/$chave/equipe/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminDiagnosticosOfertaIdRoute =
   AdminDiagnosticosOfertaIdRouteImport.update({
     id: '/admin/diagnosticos/oferta/$id',
@@ -154,6 +170,18 @@ const AdminDiagnosticosLiderIdRoute =
   AdminDiagnosticosLiderIdRouteImport.update({
     id: '/admin/diagnosticos/lider/$id',
     path: '/admin/diagnosticos/lider/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdminDiagnosticosExecutivoIdRoute =
+  AdminDiagnosticosExecutivoIdRouteImport.update({
+    id: '/admin/diagnosticos/executivo/$id',
+    path: '/admin/diagnosticos/executivo/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdminDiagnosticosEquipeIdRoute =
+  AdminDiagnosticosEquipeIdRouteImport.update({
+    id: '/admin/diagnosticos/equipe/$id',
+    path: '/admin/diagnosticos/equipe/$id',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AdminDiagnosticosEmpresaIdRoute =
@@ -185,8 +213,12 @@ export interface FileRoutesByFullPath {
   '/diagnosticos/$chave/mapa': typeof DiagnosticosChaveMapaRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
   '/admin/diagnosticos/empresa/$id': typeof AdminDiagnosticosEmpresaIdRoute
+  '/admin/diagnosticos/equipe/$id': typeof AdminDiagnosticosEquipeIdRoute
+  '/admin/diagnosticos/executivo/$id': typeof AdminDiagnosticosExecutivoIdRoute
   '/admin/diagnosticos/lider/$id': typeof AdminDiagnosticosLiderIdRoute
   '/admin/diagnosticos/oferta/$id': typeof AdminDiagnosticosOfertaIdRoute
+  '/diagnosticos/$chave/equipe/$id': typeof DiagnosticosChaveEquipeIdRoute
+  '/diagnosticos/$chave/executivo/$id': typeof DiagnosticosChaveExecutivoIdRoute
   '/diagnosticos/$chave/lider/$id': typeof DiagnosticosChaveLiderIdRoute
 }
 export interface FileRoutesByTo {
@@ -211,8 +243,12 @@ export interface FileRoutesByTo {
   '/diagnosticos/$chave/mapa': typeof DiagnosticosChaveMapaRoute
   '/admin/diagnosticos': typeof AdminDiagnosticosIndexRoute
   '/admin/diagnosticos/empresa/$id': typeof AdminDiagnosticosEmpresaIdRoute
+  '/admin/diagnosticos/equipe/$id': typeof AdminDiagnosticosEquipeIdRoute
+  '/admin/diagnosticos/executivo/$id': typeof AdminDiagnosticosExecutivoIdRoute
   '/admin/diagnosticos/lider/$id': typeof AdminDiagnosticosLiderIdRoute
   '/admin/diagnosticos/oferta/$id': typeof AdminDiagnosticosOfertaIdRoute
+  '/diagnosticos/$chave/equipe/$id': typeof DiagnosticosChaveEquipeIdRoute
+  '/diagnosticos/$chave/executivo/$id': typeof DiagnosticosChaveExecutivoIdRoute
   '/diagnosticos/$chave/lider/$id': typeof DiagnosticosChaveLiderIdRoute
 }
 export interface FileRoutesById {
@@ -238,8 +274,12 @@ export interface FileRoutesById {
   '/diagnosticos/$chave_/mapa': typeof DiagnosticosChaveMapaRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
   '/admin/diagnosticos/empresa/$id': typeof AdminDiagnosticosEmpresaIdRoute
+  '/admin/diagnosticos/equipe/$id': typeof AdminDiagnosticosEquipeIdRoute
+  '/admin/diagnosticos/executivo/$id': typeof AdminDiagnosticosExecutivoIdRoute
   '/admin/diagnosticos/lider/$id': typeof AdminDiagnosticosLiderIdRoute
   '/admin/diagnosticos/oferta/$id': typeof AdminDiagnosticosOfertaIdRoute
+  '/diagnosticos/$chave_/equipe/$id': typeof DiagnosticosChaveEquipeIdRoute
+  '/diagnosticos/$chave_/executivo/$id': typeof DiagnosticosChaveExecutivoIdRoute
   '/diagnosticos/$chave_/lider/$id': typeof DiagnosticosChaveLiderIdRoute
 }
 export interface FileRouteTypes {
@@ -266,8 +306,12 @@ export interface FileRouteTypes {
     | '/diagnosticos/$chave/mapa'
     | '/admin/diagnosticos/'
     | '/admin/diagnosticos/empresa/$id'
+    | '/admin/diagnosticos/equipe/$id'
+    | '/admin/diagnosticos/executivo/$id'
     | '/admin/diagnosticos/lider/$id'
     | '/admin/diagnosticos/oferta/$id'
+    | '/diagnosticos/$chave/equipe/$id'
+    | '/diagnosticos/$chave/executivo/$id'
     | '/diagnosticos/$chave/lider/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -292,8 +336,12 @@ export interface FileRouteTypes {
     | '/diagnosticos/$chave/mapa'
     | '/admin/diagnosticos'
     | '/admin/diagnosticos/empresa/$id'
+    | '/admin/diagnosticos/equipe/$id'
+    | '/admin/diagnosticos/executivo/$id'
     | '/admin/diagnosticos/lider/$id'
     | '/admin/diagnosticos/oferta/$id'
+    | '/diagnosticos/$chave/equipe/$id'
+    | '/diagnosticos/$chave/executivo/$id'
     | '/diagnosticos/$chave/lider/$id'
   id:
     | '__root__'
@@ -318,8 +366,12 @@ export interface FileRouteTypes {
     | '/diagnosticos/$chave_/mapa'
     | '/admin/diagnosticos/'
     | '/admin/diagnosticos/empresa/$id'
+    | '/admin/diagnosticos/equipe/$id'
+    | '/admin/diagnosticos/executivo/$id'
     | '/admin/diagnosticos/lider/$id'
     | '/admin/diagnosticos/oferta/$id'
+    | '/diagnosticos/$chave_/equipe/$id'
+    | '/diagnosticos/$chave_/executivo/$id'
     | '/diagnosticos/$chave_/lider/$id'
   fileRoutesById: FileRoutesById
 }
@@ -345,8 +397,12 @@ export interface RootRouteChildren {
   DiagnosticosChaveMapaRoute: typeof DiagnosticosChaveMapaRoute
   AdminDiagnosticosIndexRoute: typeof AdminDiagnosticosIndexRoute
   AdminDiagnosticosEmpresaIdRoute: typeof AdminDiagnosticosEmpresaIdRoute
+  AdminDiagnosticosEquipeIdRoute: typeof AdminDiagnosticosEquipeIdRoute
+  AdminDiagnosticosExecutivoIdRoute: typeof AdminDiagnosticosExecutivoIdRoute
   AdminDiagnosticosLiderIdRoute: typeof AdminDiagnosticosLiderIdRoute
   AdminDiagnosticosOfertaIdRoute: typeof AdminDiagnosticosOfertaIdRoute
+  DiagnosticosChaveEquipeIdRoute: typeof DiagnosticosChaveEquipeIdRoute
+  DiagnosticosChaveExecutivoIdRoute: typeof DiagnosticosChaveExecutivoIdRoute
   DiagnosticosChaveLiderIdRoute: typeof DiagnosticosChaveLiderIdRoute
 }
 
@@ -499,6 +555,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiagnosticosChaveLiderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/diagnosticos/$chave_/executivo/$id': {
+      id: '/diagnosticos/$chave_/executivo/$id'
+      path: '/diagnosticos/$chave/executivo/$id'
+      fullPath: '/diagnosticos/$chave/executivo/$id'
+      preLoaderRoute: typeof DiagnosticosChaveExecutivoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnosticos/$chave_/equipe/$id': {
+      id: '/diagnosticos/$chave_/equipe/$id'
+      path: '/diagnosticos/$chave/equipe/$id'
+      fullPath: '/diagnosticos/$chave/equipe/$id'
+      preLoaderRoute: typeof DiagnosticosChaveEquipeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/diagnosticos/oferta/$id': {
       id: '/admin/diagnosticos/oferta/$id'
       path: '/admin/diagnosticos/oferta/$id'
@@ -511,6 +581,20 @@ declare module '@tanstack/react-router' {
       path: '/admin/diagnosticos/lider/$id'
       fullPath: '/admin/diagnosticos/lider/$id'
       preLoaderRoute: typeof AdminDiagnosticosLiderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/diagnosticos/executivo/$id': {
+      id: '/admin/diagnosticos/executivo/$id'
+      path: '/admin/diagnosticos/executivo/$id'
+      fullPath: '/admin/diagnosticos/executivo/$id'
+      preLoaderRoute: typeof AdminDiagnosticosExecutivoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/diagnosticos/equipe/$id': {
+      id: '/admin/diagnosticos/equipe/$id'
+      path: '/admin/diagnosticos/equipe/$id'
+      fullPath: '/admin/diagnosticos/equipe/$id'
+      preLoaderRoute: typeof AdminDiagnosticosEquipeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/diagnosticos/empresa/$id': {
@@ -548,8 +632,12 @@ const rootRouteChildren: RootRouteChildren = {
   DiagnosticosChaveMapaRoute: DiagnosticosChaveMapaRoute,
   AdminDiagnosticosIndexRoute: AdminDiagnosticosIndexRoute,
   AdminDiagnosticosEmpresaIdRoute: AdminDiagnosticosEmpresaIdRoute,
+  AdminDiagnosticosEquipeIdRoute: AdminDiagnosticosEquipeIdRoute,
+  AdminDiagnosticosExecutivoIdRoute: AdminDiagnosticosExecutivoIdRoute,
   AdminDiagnosticosLiderIdRoute: AdminDiagnosticosLiderIdRoute,
   AdminDiagnosticosOfertaIdRoute: AdminDiagnosticosOfertaIdRoute,
+  DiagnosticosChaveEquipeIdRoute: DiagnosticosChaveEquipeIdRoute,
+  DiagnosticosChaveExecutivoIdRoute: DiagnosticosChaveExecutivoIdRoute,
   DiagnosticosChaveLiderIdRoute: DiagnosticosChaveLiderIdRoute,
 }
 export const routeTree = rootRouteImport

@@ -19,6 +19,39 @@ import type { AvaliacaoTipo } from "./diag-server";
  * da mesma evidência. Módulo de servidor: só é chamado de dentro de handlers.
  */
 
+/**
+ * As respostas cruas de um avaliado, seja ele líder, executivo ou equipe.
+ * Cada tela decide o que fazer com elas — o motor tem um cálculo para cada.
+ */
+export async function respostasDoAvaliado(
+  db: SupabaseClient,
+  avaliadoId: string,
+): Promise<RespostaBruta[]> {
+  const { data: avs, error } = await db
+    .from("avaliacoes")
+    .select("id, tipo")
+    .eq("lider_id", avaliadoId)
+    .neq("status", "arquivada");
+  if (error) throw new Error(error.message);
+
+  const ids = (avs ?? []).map((a) => a.id as string);
+  if (!ids.length) return [];
+  const tipoPorId = new Map((avs ?? []).map((a) => [a.id as string, a.tipo as AvaliacaoTipo]));
+
+  const { data: rs, error: e2 } = await db
+    .from("respostas")
+    .select("avaliacao_id, respostas")
+    .in("avaliacao_id", ids);
+  if (e2) throw new Error(e2.message);
+
+  return (rs ?? []).map((r) => ({
+    tipo: tipoPorId.get(r.avaliacao_id as string) as AvaliacaoTipo,
+    itens: Object.values((r.respostas ?? {}) as Record<string, ItemResposta>).filter(
+      (i) => i && typeof i.score === "number",
+    ),
+  }));
+}
+
 /** Junta as respostas de um líder e calcula. Usado por todas as portas. */
 export async function recorteDoLider(
   db: SupabaseClient,

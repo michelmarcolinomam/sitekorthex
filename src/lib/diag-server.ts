@@ -2,12 +2,22 @@ import { createServerFn } from "@tanstack/react-start";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "./access-auth";
 import { supabaseKorthex as sb } from "./korthex-db";
-import { recorteDoLider, panoramaDoCliente, montaPanorama, type PanoramaEmpresa } from "./diag-panorama";
+import {
+  recorteDoLider,
+  respostasDoAvaliado,
+  panoramaDoCliente,
+  montaPanorama,
+  type PanoramaEmpresa,
+} from "./diag-panorama";
 import { validaLead, dominioRecebeEmail, type ResultadoValidacao } from "./lead-validacao";
 import { programaDe } from "./programas";
 import {
   calculaLider,
   calculaEmpresa,
+  calculaExecutivo,
+  calculaEquipe,
+  type ResultadoExecutivoCalculado,
+  type ResultadoEquipeCalculado,
   DIMENSOES,
   media as mediaDe,
   type ItemResposta,
@@ -879,4 +889,81 @@ export const adminPanoramaEmpresa = createServerFn({ method: "GET" })
   .handler(async ({ data: clienteId }): Promise<PanoramaEmpresa | null> => {
     await requireAdmin();
     return panoramaDoCliente(clienteId);
+  });
+
+/* ──────────────  RESULTADO do EXECUTIVO e da EQUIPE  ────────────── */
+
+export interface RecorteAvaliado<T> {
+  avaliado: { id: string; nome: string; cargo: string | null; tamanho: number | null };
+  cliente: { nome_empresa: string; chave: string };
+  calculo: T;
+}
+
+/** Carrega o avaliado, confere o papel e devolve o cálculo pedido. */
+async function recorteDoAvaliado<T>(
+  db: SupabaseClient,
+  avaliadoId: string,
+  papel: PapelAvaliado,
+  calcular: (respostas: RespostaBruta[]) => T,
+  clienteEsperado?: string,
+): Promise<RecorteAvaliado<T> | null> {
+  const { data: av, error } = await db
+    .from("lideres")
+    .select("id, nome, cargo, papel, tamanho, cliente_id, clientes(nome_empresa, chave)")
+    .eq("id", avaliadoId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!av || (av.papel as PapelAvaliado) !== papel) return null;
+  if (clienteEsperado && (av.cliente_id as string) !== clienteEsperado) return null;
+
+  const cliente = (Array.isArray(av.clientes) ? av.clientes[0] : av.clientes) as
+    | { nome_empresa: string; chave: string }
+    | null;
+  if (!cliente) return null;
+
+  return {
+    avaliado: {
+      id: av.id as string,
+      nome: av.nome as string,
+      cargo: av.cargo as string | null,
+      tamanho: av.tamanho as number | null,
+    },
+    cliente,
+    calculo: calcular(await respostasDoAvaliado(db, avaliadoId)),
+  };
+}
+
+/** O recorte do executivo, pela chave da empresa. */
+export const publicResultadoExecutivo = createServerFn({ method: "GET" })
+  .inputValidator((input: { chave: string; id: string }) => input)
+  .handler(async ({ data }): Promise<RecorteAvaliado<ResultadoExecutivoCalculado> | null> => {
+    const db = sb();
+    const cliente = await clientePorChave(db, data.chave);
+    if (!cliente) return null;
+    return recorteDoAvaliado(db, data.id, "executivo", calculaExecutivo, cliente.id);
+  });
+
+/** O recorte da equipe, pela chave da empresa. Os três modos leem os mesmos dados. */
+export const publicResultadoEquipe = createServerFn({ method: "GET" })
+  .inputValidator((input: { chave: string; id: string }) => input)
+  .handler(async ({ data }): Promise<RecorteAvaliado<ResultadoEquipeCalculado> | null> => {
+    const db = sb();
+    const cliente = await clientePorChave(db, data.chave);
+    if (!cliente) return null;
+    return recorteDoAvaliado(db, data.id, "equipe", calculaEquipe, cliente.id);
+  });
+
+/** As mesmas leituras pela porta interna da Korthex. */
+export const adminResultadoExecutivo = createServerFn({ method: "GET" })
+  .inputValidator((id: string) => id)
+  .handler(async ({ data: id }): Promise<RecorteAvaliado<ResultadoExecutivoCalculado> | null> => {
+    await requireAdmin();
+    return recorteDoAvaliado(sb(), id, "executivo", calculaExecutivo);
+  });
+
+export const adminResultadoEquipe = createServerFn({ method: "GET" })
+  .inputValidator((id: string) => id)
+  .handler(async ({ data: id }): Promise<RecorteAvaliado<ResultadoEquipeCalculado> | null> => {
+    await requireAdmin();
+    return recorteDoAvaliado(sb(), id, "equipe", calculaEquipe);
   });
