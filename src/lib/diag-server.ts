@@ -722,7 +722,7 @@ export const adminVisaoGeral = createServerFn({ method: "GET" }).handler(
     const [{ data: clientes, error: e1 }, { data: lideres, error: e2 }, { data: avaliacoes, error: e3 }] =
       await Promise.all([
         db.from("clientes").select("*").neq("status", "arquivado").order("created_at", { ascending: false }),
-        db.from("lideres").select("id, cliente_id, nome, cargo"),
+        db.from("lideres").select("id, cliente_id, nome, cargo, papel"),
         db.from("avaliacoes").select("id, cliente_id, lider_id, tipo, respondentes_esperados").neq("status", "arquivada"),
       ]);
     if (e1) throw new Error(e1.message);
@@ -755,8 +755,16 @@ export const adminVisaoGeral = createServerFn({ method: "GET" }).handler(
     const prontosParaCalcular: { cliente: ClienteNoFunil; lideresIds: string[] }[] = [];
 
     for (const c of clientes ?? []) {
-      const meusLideres = (lideres ?? []).filter((l) => l.cliente_id === c.id);
-      const minhasAv = (avaliacoes ?? []).filter((a) => a.cliente_id === c.id);
+      // O funil acompanha o diagnóstico da LIDERANÇA — é ele que vira mapa da
+      // empresa e oferta. Avaliação de executivo e de equipe tem leitura
+      // própria e não pode segurar a etapa deste cliente.
+      const meusLideres = (lideres ?? []).filter(
+        (l) => l.cliente_id === c.id && ((l.papel as string) ?? "lider") === "lider",
+      );
+      const idsLideranca = new Set(meusLideres.map((l) => l.id as string));
+      const minhasAv = (avaliacoes ?? []).filter(
+        (a) => a.cliente_id === c.id && a.lider_id !== null && idsLideranca.has(a.lider_id as string),
+      );
 
       const respostas = minhasAv.reduce((s, a) => s + (porAvaliacao.get(a.id as string)?.n ?? 0), 0);
       const esperadas = minhasAv.reduce((s, a) => s + ((a.respondentes_esperados as number) || 0), 0);
