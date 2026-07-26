@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
-import { env } from "cloudflare:workers";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "./access-auth";
+import { supabaseKorthex as sb } from "./korthex-db";
+import { recorteDoLider, panoramaDoCliente, montaPanorama, type PanoramaEmpresa } from "./diag-panorama";
 import { validaLead, dominioRecebeEmail, type ResultadoValidacao } from "./lead-validacao";
 import { programaDe } from "./programas";
 import {
@@ -27,22 +28,6 @@ import {
  * emails) podem usar prefixo ou schema próprio exposto quando entrarem.
  */
 
-interface DiagEnv {
-  SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE: string;
-}
-
-function sb(): SupabaseClient {
-  const e = env as unknown as DiagEnv;
-  if (!e.SUPABASE_URL || !e.SUPABASE_SERVICE_ROLE) {
-    throw new Error(
-      "Supabase não configurado: defina SUPABASE_URL (wrangler.jsonc) e SUPABASE_SERVICE_ROLE (.dev.vars / secret).",
-    );
-  }
-  return createClient(e.SUPABASE_URL, e.SUPABASE_SERVICE_ROLE, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
 
 export type ClienteStatus = "criado" | "lead" | "ativo" | "arquivado";
 
@@ -494,62 +479,6 @@ export const adminGetCliente = createServerFn({ method: "GET" })
 
 /* ────────────────────  RESULTADO — lê o banco e calcula  ──────────────────── */
 
-/** Junta as respostas de um líder e calcula. Usado pelas duas portas. */
-async function recorteDoLider(
-  db: SupabaseClient,
-  liderId: string,
-): Promise<{ nome: string; cargo: string | null; cliente_id: string; calculo: ResultadoLiderCalculado } | null> {
-  const { data: lider, error } = await db
-    .from("lideres")
-    .select("id, nome, cargo, cliente_id")
-    .eq("id", liderId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!lider) return null;
-
-  const { data: avs, error: e2 } = await db
-    .from("avaliacoes")
-    .select("id, tipo")
-    .eq("lider_id", liderId)
-    .neq("status", "arquivada");
-  if (e2) throw new Error(e2.message);
-
-  const ids = (avs ?? []).map((a) => a.id as string);
-  const tipoPorId = new Map((avs ?? []).map((a) => [a.id as string, a.tipo as AvaliacaoTipo]));
-
-  let brutas: RespostaBruta[] = [];
-  if (ids.length) {
-    const { data: rs, error: e3 } = await db
-      .from("respostas")
-      .select("avaliacao_id, respostas")
-      .in("avaliacao_id", ids);
-    if (e3) throw new Error(e3.message);
-    brutas = (rs ?? []).map((r) => ({
-      tipo: tipoPorId.get(r.avaliacao_id as string) as AvaliacaoTipo,
-      itens: Object.values((r.respostas ?? {}) as Record<string, ItemResposta>).filter(
-        (i) => i && typeof i.score === "number",
-      ),
-    }));
-  }
-
-  return {
-    nome: lider.nome as string,
-    cargo: lider.cargo as string | null,
-    cliente_id: lider.cliente_id as string,
-    calculo: calculaLider(brutas),
-  };
-}
-
-export interface PanoramaEmpresa {
-  empresa: string;
-  chave: string;
-  totalRespondentes: number;
-  indiceTime: number | null;
-  indiceExec: number | null;
-  divergencia: number | null;
-  resultado: ResultadoEmpresa | null;
-}
-
 /**
  * Panorama de nível 2: junta todos os líderes do cliente e agrega.
  * Só entram líderes que já têm resposta — quem não foi avaliado não conta.
@@ -576,22 +505,7 @@ export const publicPanoramaEmpresa = createServerFn({ method: "GET" })
       }
     }
 
-    const comTime = recortes.map((r) => r.recorte.indiceTime).filter((v): v is number => v !== null);
-    const comExec = recortes.map((r) => r.recorte.indiceExec).filter((v): v is number => v !== null);
-    const divs = recortes.map((r) => r.recorte.divergencia).filter((v): v is number => v !== null);
-
-    return {
-      empresa: cliente.nome_empresa,
-      chave: cliente.chave,
-      totalRespondentes: recortes.reduce(
-        (s, r) => s + r.recorte.respondentesTime + r.recorte.respondentesExec,
-        0,
-      ),
-      indiceTime: comTime.length ? mediaDe(comTime) : null,
-      indiceExec: comExec.length ? mediaDe(comExec) : null,
-      divergencia: divs.length ? mediaDe(divs) : null,
-      resultado: calculaEmpresa(recortes),
-    };
+    return montaPanorama(cliente.nome_empresa, cliente.chave, recortes);
   });
 
 /**
@@ -732,7 +646,8 @@ function diaBR(ms: number): number {
   return Math.floor((ms + FUSO_BR) / 86400000);
 }
 
-function diasEntre(iso: string | null, agora: number): number {
+/** Dias corridos entre uma data e agora, na virada de dia de Brasília. */
+export function diasEntre(iso: string | null, agora: number): number {
   if (!iso) return 0;
   return Math.max(0, diaBR(agora) - diaBR(new Date(iso).getTime()));
 }
@@ -901,50 +816,10 @@ export const adminVisaoGeral = createServerFn({ method: "GET" }).handler(
   },
 );
 
-/** Panorama de nível 2 pelo id do cliente — a versão que a Korthex enxerga. */
+/** A porta admin do panorama — o cálculo acima, atrás do Cloudflare Access. */
 export const adminPanoramaEmpresa = createServerFn({ method: "GET" })
   .inputValidator((clienteId: string) => clienteId)
   .handler(async ({ data: clienteId }): Promise<PanoramaEmpresa | null> => {
     await requireAdmin();
-    const db = sb();
-
-    const { data: cliente, error } = await db
-      .from("clientes")
-      .select("id, nome_empresa, chave")
-      .eq("id", clienteId)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!cliente) return null;
-
-    const { data: lideres, error: e2 } = await db
-      .from("lideres")
-      .select("id, nome, cargo")
-      .eq("cliente_id", clienteId)
-      .order("created_at", { ascending: true });
-    if (e2) throw new Error(e2.message);
-
-    const recortes = [];
-    for (const l of lideres ?? []) {
-      const r = await recorteDoLider(db, l.id as string);
-      if (r && (r.calculo.indiceTime !== null || r.calculo.indiceExec !== null)) {
-        recortes.push({ nome: l.nome as string, cargo: l.cargo as string | null, recorte: r.calculo });
-      }
-    }
-
-    const comTime = recortes.map((r) => r.recorte.indiceTime).filter((v): v is number => v !== null);
-    const comExec = recortes.map((r) => r.recorte.indiceExec).filter((v): v is number => v !== null);
-    const divs = recortes.map((r) => r.recorte.divergencia).filter((v): v is number => v !== null);
-
-    return {
-      empresa: cliente.nome_empresa as string,
-      chave: cliente.chave as string,
-      totalRespondentes: recortes.reduce(
-        (s, r) => s + r.recorte.respondentesTime + r.recorte.respondentesExec,
-        0,
-      ),
-      indiceTime: comTime.length ? mediaDe(comTime) : null,
-      indiceExec: comExec.length ? mediaDe(comExec) : null,
-      divergencia: divs.length ? mediaDe(divs) : null,
-      resultado: calculaEmpresa(recortes),
-    };
+    return panoramaDoCliente(clienteId);
   });
