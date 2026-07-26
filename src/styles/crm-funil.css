@@ -1,0 +1,123 @@
+/*
+ * CRM — funil de oportunidades.
+ *
+ * Cada oportunidade é uma empresa e um treinamento; é isso que deixa filtrar
+ * um programa e falar com todo mundo que tem o mesmo problema de uma vez.
+ *
+ * Visual escopado em .kx-crm. Para mexer no visual desta tela, mexa AQUI.
+ */
+
+.kx-crm {
+  --bg: #F4F6FC; --surface: #EAEDF7; --card: #FFFFFF;
+  --ink: #1E1E2F; --ink-soft: #4A4860; --muted: #7C7A92; --faint: #A9A6BC;
+  --line: #E2E4F0; --line-strong: #CFD2E4;
+  --brand: #8A2BE2; --brand-deep: #6700B2; --brand-soft: #F1E8FF;
+  --crit: #D65A47; --warn: #C6A22E; --good: #2F9E78;
+  --crit-soft: #FBEDEA; --warn-soft: #FAF4E2; --good-soft: #E7F5EF;
+  --exec: #1F6FEB; --exec-soft: #E8F0FE;
+  --lid: #8A2BE2; --lid-soft: #F1E8FF;
+  --perf: #149E73; --perf-soft: #E3F5EE;
+  --pad: clamp(20px, 4vw, 48px); --radius: 14px;
+
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 100px;
+  min-height: 100vh;
+}
+
+@media (prefers-color-scheme: dark) {
+  .kx-crm {
+    --bg: #14131C; --surface: #1C1B26; --card: #1F1E2B;
+    --ink: #EDECF4; --ink-soft: #B9B6CC; --muted: #8B88A3; --faint: #6A6880;
+    --line: #2C2A3A; --line-strong: #3B3950;
+    --brand: #A96BEE; --brand-deep: #C9A2F7; --brand-soft: #2A2038;
+    --crit: #E87C6A; --warn: #D9BC5A; --good: #55BE99;
+    --crit-soft: #33221F; --warn-soft: #302A1C; --good-soft: #1B2E28;
+    --exec: #6BA3F5; --exec-soft: #17233A; --lid: #A96BEE; --lid-soft: #2A2038;
+    --perf: #3FC095; --perf-soft: #12302A;
+  }
+}
+
+.kx-crm .wrap { max-width: 1160px; margin: 0 auto; padding: 0 var(--pad); }
+.kx-crm .num { font-variant-numeric: tabular-nums; }
+.kx-crm .tag { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+
+.kx-crm .head { padding: clamp(28px, 4vw, 42px) 0 20px; }
+.kx-crm .head .tag { display: flex; align-items: center; gap: 13px; color: var(--brand); font-weight: 600; letter-spacing: .22em; }
+.kx-crm .head .tag::before { content: ""; width: 26px; height: 1px; background: var(--brand); opacity: .5; }
+.kx-crm .head h1 { font-size: clamp(1.7rem, 3.6vw, 2.2rem); font-weight: 650; letter-spacing: -.02em; margin: 12px 0 6px; }
+.kx-crm .head p { color: var(--muted); font-size: .9rem; max-width: 70ch; }
+.kx-crm .head p b { color: var(--ink-soft); font-weight: 620; }
+
+/* estágios do funil — também filtram */
+.kx-crm .estagios { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-top: 22px; }
+.kx-crm .est { background: var(--card); border: none; cursor: pointer; padding: 16px; text-align: left; font-family: inherit; border-top: 3px solid transparent; color: inherit; }
+.kx-crm .est:hover { background: var(--surface); }
+.kx-crm .est .v { font-size: 1.55rem; font-weight: 650; letter-spacing: -.02em; line-height: 1; }
+.kx-crm .est .k { margin-top: 8px; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.kx-crm .est[aria-pressed="true"] { background: var(--brand-soft); border-top-color: var(--brand); }
+.kx-crm .est[aria-pressed="true"] .v, .kx-crm .est[aria-pressed="true"] .k { color: var(--brand-deep); }
+
+/* filtros */
+.kx-crm .filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+.kx-crm .campo { display: flex; flex-direction: column; gap: 6px; min-width: 190px; flex: 1; }
+.kx-crm .campo label { font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.kx-crm .campo select, .kx-crm .campo input {
+  border: 1px solid var(--line-strong); background: var(--bg); border-radius: 10px;
+  padding: 11px 13px; font-size: .89rem; color: var(--ink); font-family: inherit; outline: none;
+}
+.kx-crm .campo select { cursor: pointer; }
+.kx-crm .campo select:focus, .kx-crm .campo input:focus { border-color: var(--brand); }
+.kx-crm .limpar { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 600; cursor: pointer; padding: 12px 4px; background: none; border: none; font-family: inherit; }
+.kx-crm .limpar:hover { color: var(--ink); }
+
+.kx-crm .resultado { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 24px 0 12px; flex-wrap: wrap; }
+.kx-crm .resultado .conta { font-size: .95rem; font-weight: 600; }
+.kx-crm .resultado .conta b { color: var(--brand-deep); }
+.kx-crm .resultado .todos { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--brand); font-weight: 600; cursor: pointer; background: none; border: none; font-family: inherit; }
+
+.kx-crm .lista { display: grid; gap: 10px; }
+.kx-crm .op {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 15px 18px; cursor: pointer;
+}
+.kx-crm .op[data-sel="1"] { border-color: var(--brand); background: var(--brand-soft); }
+.kx-crm .op input { width: 17px; height: 17px; accent-color: var(--brand); cursor: pointer; }
+.kx-crm .op .empresa { display: block; font-weight: 620; font-size: .98rem; }
+.kx-crm .op .produto { display: block; margin-top: 4px; font-size: .89rem; color: var(--ink-soft); }
+.kx-crm .op .produto b { color: var(--ink); font-weight: 600; }
+.kx-crm .op .evid { display: block; margin-top: 5px; font-size: .8rem; color: var(--muted); }
+.kx-crm .op .dir { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; white-space: nowrap; }
+.kx-crm .selo { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+.kx-crm .g-exec { background: var(--exec-soft); color: var(--exec); }
+.kx-crm .g-lid { background: var(--lid-soft); color: var(--lid); }
+.kx-crm .g-perf { background: var(--perf-soft); color: var(--perf); }
+.kx-crm .est-chip { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; font-weight: 650; padding: 4px 10px; border-radius: 999px; background: var(--surface); color: var(--ink-soft); }
+.kx-crm .e-ganha { background: var(--good-soft); color: var(--good); }
+.kx-crm .e-perdida { background: var(--crit-soft); color: var(--crit); }
+.kx-crm .op .dias { font-size: .74rem; color: var(--faint); }
+
+.kx-crm .vazio { border: 1px dashed var(--line-strong); border-radius: var(--radius); padding: 46px 24px; text-align: center; color: var(--muted); font-size: .9rem; line-height: 1.6; }
+.kx-crm .vazio a { color: var(--brand); text-decoration: none; font-weight: 600; }
+
+/* barra de ação em massa */
+.kx-crm .barra { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--card); border-top: 1px solid var(--line-strong); box-shadow: 0 -8px 24px -18px rgba(0,0,0,.4); }
+.kx-crm .barra .wrap { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 15px var(--pad); flex-wrap: wrap; }
+.kx-crm .barra .quantos { font-size: .92rem; font-weight: 600; }
+.kx-crm .barra .quantos small { display: block; font-weight: 400; font-size: .78rem; color: var(--muted); margin-top: 3px; }
+.kx-crm .barra .acoes { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.kx-crm .btn { border: none; cursor: pointer; background: var(--brand); color: #fff; border-radius: 999px; padding: 12px 24px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 600; font-family: inherit; }
+.kx-crm .btn.ghost { background: transparent; color: var(--brand); border: 1px solid var(--brand); }
+.kx-crm .btn:disabled { opacity: .35; cursor: not-allowed; }
+.kx-crm .aviso { margin-top: 16px; border-radius: 10px; padding: 12px 16px; font-size: .86rem; background: var(--good-soft); color: var(--good); }
+.kx-crm .aviso.ruim { background: var(--crit-soft); color: var(--crit); }
+
+@media (max-width: 980px) { .kx-crm .estagios { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 620px) {
+  .kx-crm .estagios { grid-template-columns: repeat(2, 1fr); }
+  .kx-crm .op { grid-template-columns: auto 1fr; }
+  .kx-crm .op .dir { grid-column: 2; flex-direction: row; align-items: center; flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) { .kx-crm * { transition: none !important; } }

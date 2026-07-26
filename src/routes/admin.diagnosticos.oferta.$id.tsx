@@ -2,6 +2,8 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { adminOfertaDoCliente, adminSalvarOferta, type ItemDaOferta } from "@/lib/crm-server";
 import { MontarOferta } from "@/components/diagnosticos/MontarOferta";
+import { AdminNav } from "@/components/admin/AdminNav";
+import adminCss from "@/styles/admin-diagnosticos.css?url";
 import ofertaCss from "@/styles/montar-oferta.css?url";
 
 /**
@@ -18,7 +20,10 @@ export const Route = createFileRoute("/admin/diagnosticos/oferta/$id")({
       { title: "Montar oferta — Korthex" },
       { name: "robots", content: "noindex, nofollow" },
     ],
-    links: [{ rel: "stylesheet", href: ofertaCss }],
+    links: [
+      { rel: "stylesheet", href: adminCss },
+      { rel: "stylesheet", href: ofertaCss },
+    ],
   }),
   component: Oferta,
 });
@@ -72,18 +77,13 @@ function Oferta() {
 
   return (
     <>
-      <div className="border-b border-border bg-background px-6 py-3">
-        <div className="mx-auto flex max-w-[1120px] flex-wrap items-center justify-between gap-4">
-          <a
-            href="/admin/diagnosticos"
-            className="text-[10px] uppercase tracking-[0.2em] text-primary hover:underline"
-          >
-            ← Diagnósticos
-          </a>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/45">
+      <div className="kx-admin">
+        <AdminNav ativa="diagnosticos" />
+        <div className="wrap">
+          <p className="tag" style={{ paddingTop: 14 }}>
             Montar oferta · {dados.cliente.chave}
             {abertas > 0 && ` · ${abertas} no funil`}
-          </span>
+          </p>
         </div>
       </div>
 

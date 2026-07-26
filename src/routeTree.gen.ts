@@ -20,10 +20,12 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as DiagnosticosChaveRouteImport } from './routes/diagnosticos.$chave'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AdminNovoRouteImport } from './routes/admin.novo'
+import { Route as AdminCrmRouteImport } from './routes/admin.crm'
 import { Route as AdminIdRouteImport } from './routes/admin.$id'
 import { Route as AdminDiagnosticosIndexRouteImport } from './routes/admin.diagnosticos.index'
 import { Route as DiagnosticosChaveMapaRouteImport } from './routes/diagnosticos.$chave_.mapa'
 import { Route as AdminDiagnosticosResultadoExemploRouteImport } from './routes/admin.diagnosticos.resultado-exemplo'
+import { Route as AdminDiagnosticosClientesRouteImport } from './routes/admin.diagnosticos.clientes'
 import { Route as AdminDiagnosticosIdRouteImport } from './routes/admin.diagnosticos.$id'
 import { Route as DiagnosticosChaveLiderIdRouteImport } from './routes/diagnosticos.$chave_.lider.$id'
 import { Route as AdminDiagnosticosOfertaIdRouteImport } from './routes/admin.diagnosticos.oferta.$id'
@@ -85,6 +87,11 @@ const AdminNovoRoute = AdminNovoRouteImport.update({
   path: '/admin/novo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCrmRoute = AdminCrmRouteImport.update({
+  id: '/admin/crm',
+  path: '/admin/crm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIdRoute = AdminIdRouteImport.update({
   id: '/admin/$id',
   path: '/admin/$id',
@@ -104,6 +111,12 @@ const AdminDiagnosticosResultadoExemploRoute =
   AdminDiagnosticosResultadoExemploRouteImport.update({
     id: '/admin/diagnosticos/resultado-exemplo',
     path: '/admin/diagnosticos/resultado-exemplo',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdminDiagnosticosClientesRoute =
+  AdminDiagnosticosClientesRouteImport.update({
+    id: '/admin/diagnosticos/clientes',
+    path: '/admin/diagnosticos/clientes',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AdminDiagnosticosIdRoute = AdminDiagnosticosIdRouteImport.update({
@@ -144,12 +157,14 @@ export interface FileRoutesByFullPath {
   '/metodo': typeof MetodoRoute
   '/performance': typeof PerformanceRoute
   '/admin/$id': typeof AdminIdRoute
+  '/admin/crm': typeof AdminCrmRoute
   '/admin/novo': typeof AdminNovoRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/diagnosticos/$chave': typeof DiagnosticosChaveRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
+  '/admin/diagnosticos/clientes': typeof AdminDiagnosticosClientesRoute
   '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/diagnosticos/$chave/mapa': typeof DiagnosticosChaveMapaRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
@@ -166,12 +181,14 @@ export interface FileRoutesByTo {
   '/metodo': typeof MetodoRoute
   '/performance': typeof PerformanceRoute
   '/admin/$id': typeof AdminIdRoute
+  '/admin/crm': typeof AdminCrmRoute
   '/admin/novo': typeof AdminNovoRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/diagnosticos/$chave': typeof DiagnosticosChaveRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
   '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
+  '/admin/diagnosticos/clientes': typeof AdminDiagnosticosClientesRoute
   '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/diagnosticos/$chave/mapa': typeof DiagnosticosChaveMapaRoute
   '/admin/diagnosticos': typeof AdminDiagnosticosIndexRoute
@@ -189,12 +206,14 @@ export interface FileRoutesById {
   '/metodo': typeof MetodoRoute
   '/performance': typeof PerformanceRoute
   '/admin/$id': typeof AdminIdRoute
+  '/admin/crm': typeof AdminCrmRoute
   '/admin/novo': typeof AdminNovoRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/diagnosticos/$chave': typeof DiagnosticosChaveRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
+  '/admin/diagnosticos/clientes': typeof AdminDiagnosticosClientesRoute
   '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/diagnosticos/$chave_/mapa': typeof DiagnosticosChaveMapaRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
@@ -213,12 +232,14 @@ export interface FileRouteTypes {
     | '/metodo'
     | '/performance'
     | '/admin/$id'
+    | '/admin/crm'
     | '/admin/novo'
     | '/blog/$slug'
     | '/diagnosticos/$chave'
     | '/admin/'
     | '/blog/'
     | '/admin/diagnosticos/$id'
+    | '/admin/diagnosticos/clientes'
     | '/admin/diagnosticos/resultado-exemplo'
     | '/diagnosticos/$chave/mapa'
     | '/admin/diagnosticos/'
@@ -235,12 +256,14 @@ export interface FileRouteTypes {
     | '/metodo'
     | '/performance'
     | '/admin/$id'
+    | '/admin/crm'
     | '/admin/novo'
     | '/blog/$slug'
     | '/diagnosticos/$chave'
     | '/admin'
     | '/blog'
     | '/admin/diagnosticos/$id'
+    | '/admin/diagnosticos/clientes'
     | '/admin/diagnosticos/resultado-exemplo'
     | '/diagnosticos/$chave/mapa'
     | '/admin/diagnosticos'
@@ -257,12 +280,14 @@ export interface FileRouteTypes {
     | '/metodo'
     | '/performance'
     | '/admin/$id'
+    | '/admin/crm'
     | '/admin/novo'
     | '/blog/$slug'
     | '/diagnosticos/$chave'
     | '/admin/'
     | '/blog/'
     | '/admin/diagnosticos/$id'
+    | '/admin/diagnosticos/clientes'
     | '/admin/diagnosticos/resultado-exemplo'
     | '/diagnosticos/$chave_/mapa'
     | '/admin/diagnosticos/'
@@ -280,12 +305,14 @@ export interface RootRouteChildren {
   MetodoRoute: typeof MetodoRoute
   PerformanceRoute: typeof PerformanceRoute
   AdminIdRoute: typeof AdminIdRoute
+  AdminCrmRoute: typeof AdminCrmRoute
   AdminNovoRoute: typeof AdminNovoRoute
   BlogSlugRoute: typeof BlogSlugRoute
   DiagnosticosChaveRoute: typeof DiagnosticosChaveRoute
   AdminIndexRoute: typeof AdminIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   AdminDiagnosticosIdRoute: typeof AdminDiagnosticosIdRoute
+  AdminDiagnosticosClientesRoute: typeof AdminDiagnosticosClientesRoute
   AdminDiagnosticosResultadoExemploRoute: typeof AdminDiagnosticosResultadoExemploRoute
   DiagnosticosChaveMapaRoute: typeof DiagnosticosChaveMapaRoute
   AdminDiagnosticosIndexRoute: typeof AdminDiagnosticosIndexRoute
@@ -374,6 +401,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminNovoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/crm': {
+      id: '/admin/crm'
+      path: '/admin/crm'
+      fullPath: '/admin/crm'
+      preLoaderRoute: typeof AdminCrmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/$id': {
       id: '/admin/$id'
       path: '/admin/$id'
@@ -400,6 +434,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/diagnosticos/resultado-exemplo'
       fullPath: '/admin/diagnosticos/resultado-exemplo'
       preLoaderRoute: typeof AdminDiagnosticosResultadoExemploRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/diagnosticos/clientes': {
+      id: '/admin/diagnosticos/clientes'
+      path: '/admin/diagnosticos/clientes'
+      fullPath: '/admin/diagnosticos/clientes'
+      preLoaderRoute: typeof AdminDiagnosticosClientesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/diagnosticos/$id': {
@@ -448,12 +489,14 @@ const rootRouteChildren: RootRouteChildren = {
   MetodoRoute: MetodoRoute,
   PerformanceRoute: PerformanceRoute,
   AdminIdRoute: AdminIdRoute,
+  AdminCrmRoute: AdminCrmRoute,
   AdminNovoRoute: AdminNovoRoute,
   BlogSlugRoute: BlogSlugRoute,
   DiagnosticosChaveRoute: DiagnosticosChaveRoute,
   AdminIndexRoute: AdminIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   AdminDiagnosticosIdRoute: AdminDiagnosticosIdRoute,
+  AdminDiagnosticosClientesRoute: AdminDiagnosticosClientesRoute,
   AdminDiagnosticosResultadoExemploRoute:
     AdminDiagnosticosResultadoExemploRoute,
   DiagnosticosChaveMapaRoute: DiagnosticosChaveMapaRoute,

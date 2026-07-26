@@ -617,6 +617,8 @@ export interface ClienteNoFunil {
   diasParado: number;
   responsavel: { nome: string; cargo: string | null; email: string; telefone: string | null } | null;
   lideres: number;
+  /** Quando só há um líder, o id dele — para linkar direto no recorte. */
+  liderUnicoId: string | null;
   respostas: number;
   esperadas: number;
   /** Quando chegou a última resposta (ISO), se houver. */
@@ -744,6 +746,7 @@ export const adminVisaoGeral = createServerFn({ method: "GET" }).handler(
             }
           : null,
         lideres: meusLideres.length,
+        liderUnicoId: meusLideres.length === 1 ? (meusLideres[0].id as string) : null,
         respostas,
         esperadas,
         ultimaResposta,
@@ -781,12 +784,17 @@ export const adminVisaoGeral = createServerFn({ method: "GET" }).handler(
         const def = DIMENSOES.find((d) => d.chave === pior.chave);
         cliente.ofertaIndicada = def ? programaDe(def.chave).titulo : null;
       }
-      // Demanda: toda dimensão fora da faixa forte conta para o programa dela.
+      // Demanda: em quantas EMPRESAS cada treinamento é indicado. Duas
+      // dimensões podem cair no mesmo programa (Emoções e Autonomia) — e aí
+      // continua sendo uma empresa pedindo aquele treinamento, não duas.
+      const programasDaEmpresa = new Set<string>();
       for (const d of emp.porDimensao) {
         if (d.band === "hi") continue;
         const def = DIMENSOES.find((x) => x.chave === d.chave);
         if (!def) continue;
-        const titulo = programaDe(def.chave).titulo;
+        programasDaEmpresa.add(programaDe(def.chave).titulo);
+      }
+      for (const titulo of programasDaEmpresa) {
         demandaConta.set(titulo, (demandaConta.get(titulo) ?? 0) + 1);
       }
     }

@@ -1,12 +1,14 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { adminListPosts, deletePost } from "@/lib/blog-server";
-import { KorthexLogo } from "@/components/blog/Chrome";
+import { AdminNav } from "@/components/admin/AdminNav";
+import adminCss from "@/styles/admin-diagnosticos.css?url";
 import { formatDate } from "@/lib/blog-types";
 
 export const Route = createFileRoute("/admin/")({
   loader: () => adminListPosts(),
   head: () => ({
     meta: [{ title: "Painel — Korthex" }, { name: "robots", content: "noindex, nofollow" }],
+    links: [{ rel: "stylesheet", href: adminCss }],
   }),
   component: AdminList,
 });
@@ -23,14 +25,15 @@ function AdminList() {
 
   return (
     <div className="min-h-screen bg-[color:var(--surface)]">
+      <div className="kx-admin">
+        <AdminNav ativa="blog" />
+      </div>
+
       <header className="border-b border-border bg-background">
         <div className="mx-auto flex max-w-[1100px] items-center justify-between px-6 py-6">
-          <div className="flex items-center gap-4 text-foreground">
-            <KorthexLogo className="h-6 w-auto" />
-            <span className="text-[10px] uppercase tracking-[0.25em] text-foreground/45">
-              Painel
-            </span>
-          </div>
+          <span className="text-[10px] uppercase tracking-[0.25em] text-foreground/45">
+            Blog · publicações
+          </span>
           <Link
             to="/admin/novo"
             className="rounded-full bg-primary px-6 py-3 text-[11px] uppercase tracking-[0.2em] text-white hover:bg-primary/90 transition-colors"

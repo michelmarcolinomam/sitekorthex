@@ -2,12 +2,11 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   adminVisaoGeral,
-  adminCreateCliente,
   adminArchiveCliente,
   type ClienteNoFunil,
   type EtapaFunil,
 } from "@/lib/diag-server";
-import { KorthexLogo } from "@/components/blog/Chrome";
+import { AdminNav } from "@/components/admin/AdminNav";
 import adminCss from "@/styles/admin-diagnosticos.css?url";
 
 /**
@@ -90,8 +89,9 @@ const MARCA_ESTILO: Record<EtapaFunil, { bg: string; cor: string }> = {
 
 /** Para onde o "ver o resultado" leva: um líder vai ao recorte, vários ao mapa. */
 function destinoResultado(c: ClienteNoFunil) {
-  return c.lideres === 1
-    ? { texto: "Ver o recorte do líder →", href: `/admin/diagnosticos/${c.id}` }
+  // Um líder só não tem mapa de empresa que valha: vai direto ao recorte dele.
+  return c.lideres === 1 && c.liderUnicoId
+    ? { texto: "Ver o recorte do líder →", href: `/admin/diagnosticos/lider/${c.liderUnicoId}` }
     : { texto: "Ver o mapa da empresa →", href: `/admin/diagnosticos/empresa/${c.id}` };
 }
 
@@ -105,9 +105,6 @@ function PainelDiagnosticos() {
   const visao = Route.useLoaderData();
   const router = useRouter();
   const [etapa, setEtapa] = useState<EtapaFunil>("pronto");
-  const [nome, setNome] = useState("");
-  const [criando, setCriando] = useState(false);
-  const [abrirForm, setAbrirForm] = useState(false);
   const [copiado, setCopiado] = useState<string | null>(null);
 
   const daEtapa = useMemo(
@@ -125,23 +122,6 @@ function PainelDiagnosticos() {
 
   const def = ETAPAS.find((e) => e.chave === etapa)!;
 
-  const criar = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const n = nome.trim();
-    if (!n || criando) return;
-    setCriando(true);
-    try {
-      await adminCreateCliente({ data: { nome_empresa: n } });
-      setNome("");
-      setAbrirForm(false);
-      await router.invalidate();
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Erro ao criar cliente.");
-    } finally {
-      setCriando(false);
-    }
-  };
-
   const copiar = (c: ClienteNoFunil) => {
     void navigator.clipboard?.writeText(`${window.location.origin}/diagnosticos/${c.chave}`);
     setCopiado(c.id);
@@ -156,17 +136,7 @@ function PainelDiagnosticos() {
 
   return (
     <div className="kx-admin">
-      <div className="topbar">
-        <div className="wrap">
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <KorthexLogo className="h-6 w-auto" />
-            <span className="tag">Diagnósticos · painel interno</span>
-          </div>
-          <a href="/admin" className="tag" style={{ textDecoration: "none" }}>
-            ← Painel
-          </a>
-        </div>
-      </div>
+      <AdminNav ativa="diagnosticos" />
 
       <div className="wrap">
         <header className="head">
@@ -174,25 +144,10 @@ function PainelDiagnosticos() {
             <div className="tag">Visão geral</div>
             <h1>O que precisa de você hoje</h1>
           </div>
-          <button type="button" className="btn" onClick={() => setAbrirForm((v) => !v)}>
-            {abrirForm ? "Cancelar" : "+ Novo cliente"}
-          </button>
+          <a href="/admin/diagnosticos/clientes" className="btn" style={{ textDecoration: "none" }}>
+            + Novo cliente
+          </a>
         </header>
-
-        {abrirForm ? (
-          <form onSubmit={criar} className="novo-cliente">
-            <input
-              autoFocus
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              placeholder="Nome da empresa"
-              aria-label="Nome da empresa"
-            />
-            <button type="submit" className="btn" disabled={criando || !nome.trim()}>
-              {criando ? "Gerando…" : "Gerar chave"}
-            </button>
-          </form>
-        ) : null}
 
         {/* Desde ontem: só quem fechou no dia anterior. */}
         <div className="ontem">

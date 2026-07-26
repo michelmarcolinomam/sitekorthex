@@ -152,3 +152,47 @@
 .kx-admin .btn:disabled { opacity: .4; cursor: not-allowed; }
 .kx-admin .topbar .tag { text-decoration: none; }
 .kx-admin a { color: inherit; }
+
+/* ─── Navegação do admin ───
+   As seções do painel interno: onde se cria a chave, onde se acompanha o
+   diagnóstico e onde se vende. Cada coisa no seu lugar. */
+.kx-admin .nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.kx-admin .nav a {
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600;
+  color: var(--muted); text-decoration: none; padding: 9px 14px; border-radius: 999px;
+  white-space: nowrap; transition: color .15s, background .15s;
+}
+.kx-admin .nav a:hover { color: var(--ink); background: var(--surface); }
+.kx-admin .nav a[aria-current="page"] { color: var(--brand-deep); background: var(--brand-soft); }
+.kx-admin .topbar .wrap { flex-wrap: wrap; }
+
+/* Lista de clientes e chaves */
+.kx-admin .tabela { border: 1px solid var(--line); background: var(--card); border-radius: var(--radius); overflow: hidden; }
+.kx-admin .trow {
+  /* Cada linha é um grid próprio: nada de coluna `auto`, senão cada uma
+     resolve uma largura diferente e o cabeçalho desalinha das linhas. */
+  display: grid; grid-template-columns: 1.7fr 1fr .8fr .8fr 264px; gap: 16px; align-items: center;
+  padding: 15px 20px; border-bottom: 1px solid var(--line);
+}
+.kx-admin .trow:last-child { border-bottom: none; }
+.kx-admin .trow.cab { background: var(--surface); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 650; }
+.kx-admin .trow .emp { font-weight: 620; font-size: .97rem; }
+.kx-admin .trow .emp small { display: block; font-weight: 400; font-size: .78rem; color: var(--muted); margin-top: 3px; }
+.kx-admin .chave { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86rem; color: var(--ink-soft); }
+.kx-admin .quando { font-size: .82rem; color: var(--muted); }
+.kx-admin .acoes-linha { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.kx-admin .acoes-linha a, .kx-admin .acoes-linha button {
+  background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; color: var(--brand);
+}
+.kx-admin .acoes-linha .sec { color: var(--muted); }
+.kx-admin .acoes-linha .sec:hover { color: var(--ink); }
+.kx-admin .pill { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--surface); color: var(--muted); }
+.kx-admin .pill.ok { background: var(--good-soft); color: var(--good); }
+.kx-admin .pill.espera { background: var(--warn-soft); color: var(--warn); }
+
+@media (max-width: 900px) {
+  .kx-admin .trow { grid-template-columns: 1fr 1fr; }
+  .kx-admin .trow.cab { display: none; }
+  .kx-admin .acoes-linha { grid-column: 1 / -1; justify-content: flex-start; }
+}
