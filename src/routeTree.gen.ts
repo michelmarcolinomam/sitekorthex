@@ -25,6 +25,7 @@ import { Route as AdminIdRouteImport } from './routes/admin.$id'
 import { Route as AdminDiagnosticosIndexRouteImport } from './routes/admin.diagnosticos.index'
 import { Route as DiagnosticosChaveMapaRouteImport } from './routes/diagnosticos.$chave_.mapa'
 import { Route as AdminDiagnosticosResultadoExemploRouteImport } from './routes/admin.diagnosticos.resultado-exemplo'
+import { Route as AdminDiagnosticosResultadoExecutivoExemploRouteImport } from './routes/admin.diagnosticos.resultado-executivo-exemplo'
 import { Route as AdminDiagnosticosClientesRouteImport } from './routes/admin.diagnosticos.clientes'
 import { Route as AdminDiagnosticosIdRouteImport } from './routes/admin.diagnosticos.$id'
 import { Route as DiagnosticosChaveLiderIdRouteImport } from './routes/diagnosticos.$chave_.lider.$id'
@@ -113,6 +114,12 @@ const AdminDiagnosticosResultadoExemploRoute =
     path: '/admin/diagnosticos/resultado-exemplo',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminDiagnosticosResultadoExecutivoExemploRoute =
+  AdminDiagnosticosResultadoExecutivoExemploRouteImport.update({
+    id: '/admin/diagnosticos/resultado-executivo-exemplo',
+    path: '/admin/diagnosticos/resultado-executivo-exemplo',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminDiagnosticosClientesRoute =
   AdminDiagnosticosClientesRouteImport.update({
     id: '/admin/diagnosticos/clientes',
@@ -165,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
   '/admin/diagnosticos/clientes': typeof AdminDiagnosticosClientesRoute
+  '/admin/diagnosticos/resultado-executivo-exemplo': typeof AdminDiagnosticosResultadoExecutivoExemploRoute
   '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/diagnosticos/$chave/mapa': typeof DiagnosticosChaveMapaRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
@@ -189,6 +197,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
   '/admin/diagnosticos/clientes': typeof AdminDiagnosticosClientesRoute
+  '/admin/diagnosticos/resultado-executivo-exemplo': typeof AdminDiagnosticosResultadoExecutivoExemploRoute
   '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/diagnosticos/$chave/mapa': typeof DiagnosticosChaveMapaRoute
   '/admin/diagnosticos': typeof AdminDiagnosticosIndexRoute
@@ -214,6 +223,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/admin/diagnosticos/$id': typeof AdminDiagnosticosIdRoute
   '/admin/diagnosticos/clientes': typeof AdminDiagnosticosClientesRoute
+  '/admin/diagnosticos/resultado-executivo-exemplo': typeof AdminDiagnosticosResultadoExecutivoExemploRoute
   '/admin/diagnosticos/resultado-exemplo': typeof AdminDiagnosticosResultadoExemploRoute
   '/diagnosticos/$chave_/mapa': typeof DiagnosticosChaveMapaRoute
   '/admin/diagnosticos/': typeof AdminDiagnosticosIndexRoute
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/admin/diagnosticos/$id'
     | '/admin/diagnosticos/clientes'
+    | '/admin/diagnosticos/resultado-executivo-exemplo'
     | '/admin/diagnosticos/resultado-exemplo'
     | '/diagnosticos/$chave/mapa'
     | '/admin/diagnosticos/'
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/admin/diagnosticos/$id'
     | '/admin/diagnosticos/clientes'
+    | '/admin/diagnosticos/resultado-executivo-exemplo'
     | '/admin/diagnosticos/resultado-exemplo'
     | '/diagnosticos/$chave/mapa'
     | '/admin/diagnosticos'
@@ -288,6 +300,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/admin/diagnosticos/$id'
     | '/admin/diagnosticos/clientes'
+    | '/admin/diagnosticos/resultado-executivo-exemplo'
     | '/admin/diagnosticos/resultado-exemplo'
     | '/diagnosticos/$chave_/mapa'
     | '/admin/diagnosticos/'
@@ -313,6 +326,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   AdminDiagnosticosIdRoute: typeof AdminDiagnosticosIdRoute
   AdminDiagnosticosClientesRoute: typeof AdminDiagnosticosClientesRoute
+  AdminDiagnosticosResultadoExecutivoExemploRoute: typeof AdminDiagnosticosResultadoExecutivoExemploRoute
   AdminDiagnosticosResultadoExemploRoute: typeof AdminDiagnosticosResultadoExemploRoute
   DiagnosticosChaveMapaRoute: typeof DiagnosticosChaveMapaRoute
   AdminDiagnosticosIndexRoute: typeof AdminDiagnosticosIndexRoute
@@ -436,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDiagnosticosResultadoExemploRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/diagnosticos/resultado-executivo-exemplo': {
+      id: '/admin/diagnosticos/resultado-executivo-exemplo'
+      path: '/admin/diagnosticos/resultado-executivo-exemplo'
+      fullPath: '/admin/diagnosticos/resultado-executivo-exemplo'
+      preLoaderRoute: typeof AdminDiagnosticosResultadoExecutivoExemploRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/diagnosticos/clientes': {
       id: '/admin/diagnosticos/clientes'
       path: '/admin/diagnosticos/clientes'
@@ -497,6 +518,8 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   AdminDiagnosticosIdRoute: AdminDiagnosticosIdRoute,
   AdminDiagnosticosClientesRoute: AdminDiagnosticosClientesRoute,
+  AdminDiagnosticosResultadoExecutivoExemploRoute:
+    AdminDiagnosticosResultadoExecutivoExemploRoute,
   AdminDiagnosticosResultadoExemploRoute:
     AdminDiagnosticosResultadoExemploRoute,
   DiagnosticosChaveMapaRoute: DiagnosticosChaveMapaRoute,

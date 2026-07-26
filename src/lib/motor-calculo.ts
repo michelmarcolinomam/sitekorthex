@@ -232,6 +232,126 @@ export function calculaLider(respostas: RespostaBruta[]): ResultadoLiderCalculad
   };
 }
 
+/* ─────────────────────  O EXECUTIVO — outro conjunto  ─────────────────────
+
+   O executivo não é lido pelas mesmas cinco dimensões da liderança: ele é lido
+   pelos CINCO EIXOS do Korthex Executivo, com os nomes do site
+   (src/routes/korthex-executivo.tsx). E é lido por uma ótica só — a liderança
+   abaixo dele. Onde no líder existe o gap entre duas óticas, aqui existe outra
+   coisa igualmente reveladora: o quanto os líderes DIVERGEM entre si sobre a
+   mesma pessoa. Quando um vê 80 e outro vê 40, ele é um executivo diferente
+   dependendo de quem entra na sala. */
+
+export const EIXOS_EXECUTIVO = [
+  { chave: "consciencia", nome: "Consciência & Autopercepção", curto: "Consciência" },
+  { chave: "identidade", nome: "Identidade & Posicionamento", curto: "Identidade" },
+  { chave: "decisao", nome: "Decisão & Gestão Emocional", curto: "Decisão" },
+  { chave: "sucessao", nome: "Liderança & Sucessão", curto: "Sucessão" },
+  { chave: "cultura", nome: "Visão de Futuro & Cultura", curto: "Cultura" },
+] as const;
+
+export type ChaveEixo = (typeof EIXOS_EXECUTIVO)[number]["chave"];
+
+/**
+ * Abaixo deste número de respondentes o resultado NÃO deve ser mostrado: com
+ * uma ou duas respostas, o executivo descobre quem falou o quê e o instrumento
+ * morre na primeira aplicação. O anonimato é o que sustenta a honestidade.
+ */
+export const MINIMO_RESPONDENTES_EXEC = 3;
+
+/** A partir daqui as leituras dos líderes estão divididas demais para ignorar. */
+const AMPLITUDE_DIVIDIDA = 25;
+
+export interface EixoCalculado {
+  chave: ChaveEixo;
+  nome: string;
+  curto: string;
+  valor: number | null;
+  faixa: "hi" | "mid" | "lo" | null;
+  severidade: Severidade | null;
+  rotulo: string | null;
+  /** Distância entre o líder que melhor e o que pior avaliou este eixo. */
+  amplitude: number | null;
+  /** As leituras estão divididas — o eixo merece conversa mesmo se a média salva. */
+  dividido: boolean;
+}
+
+export interface ResultadoExecutivoCalculado {
+  eixos: EixoCalculado[];
+  indiceGeral: number | null;
+  respondentes: number;
+  /** Média das amplitudes: o quanto os líderes discordam entre si, no geral. */
+  divergenciaInterna: number | null;
+  /** Falso quando ainda não há respostas suficientes para mostrar sem expor ninguém. */
+  liberado: boolean;
+}
+
+/** Régua do executivo — mesma escala de 4 faixas, leitura própria. */
+export function classificaExecutivo(indice: number): { chave: string; rotulo: string } {
+  if (indice >= 80) return { chave: "ref", rotulo: "Referência para a liderança" };
+  if (indice >= 66) return { chave: "ok", rotulo: "Condução sólida" };
+  if (indice >= 55) return { chave: "ment", rotulo: "Mentoria executiva indicada" };
+  return { chave: "emerg", rotulo: "Mentoria executiva prioritária" };
+}
+
+/**
+ * Calcula o recorte de UM executivo a partir das respostas dos líderes dele.
+ * Cada respondente vira um índice por eixo; o eixo é a média entre eles, e a
+ * amplitude guarda o desacordo.
+ */
+export function calculaExecutivo(respostas: RespostaBruta[]): ResultadoExecutivoCalculado {
+  const validas = respostas.filter((r) => r.tipo === "executivo_lideranca");
+
+  // Um índice por eixo POR RESPONDENTE — é isso que permite ver o desacordo.
+  const porEixo = new Map<string, number[]>();
+  for (const r of validas) {
+    const notas = new Map<string, number[]>();
+    for (const item of r.itens) {
+      if (typeof item.score !== "number" || Number.isNaN(item.score)) continue;
+      const lista = notas.get(item.theme) ?? [];
+      lista.push(item.score);
+      notas.set(item.theme, lista);
+    }
+    for (const [tema, valores] of notas) {
+      const indice = paraIndice(valores);
+      if (indice === null) continue;
+      porEixo.set(tema, [...(porEixo.get(tema) ?? []), indice]);
+    }
+  }
+
+  const eixos: EixoCalculado[] = EIXOS_EXECUTIVO.map((e) => {
+    const leituras = porEixo.get(e.chave) ?? [];
+    if (!leituras.length) {
+      return { chave: e.chave, nome: e.nome, curto: e.curto, valor: null, faixa: null, severidade: null, rotulo: null, amplitude: null, dividido: false };
+    }
+
+    const valor = media(leituras);
+    const faixa = band(valor);
+    const amplitude = leituras.length > 1 ? Math.max(...leituras) - Math.min(...leituras) : null;
+    const dividido = amplitude !== null && amplitude >= AMPLITUDE_DIVIDIDA;
+
+    // Mesma regra da tela do líder: vale a PIOR das duas leituras. Média boa
+    // com líderes divididos não é força — é sinal de que ele é uma pessoa
+    // diferente dependendo de quem pergunta.
+    const sevNivel = SEV_POR_FAIXA[faixa];
+    const severidade: Severidade = dividido && sevNivel === "good" ? "warn" : sevNivel;
+    const rotulo = dividido ? `leituras divididas · ${ROTULO_BAND[faixa]}` : ROTULO_BAND[faixa];
+
+    return { chave: e.chave, nome: e.nome, curto: e.curto, valor, faixa, severidade, rotulo, amplitude, dividido };
+  });
+
+  const comValor = eixos.filter((e) => e.valor !== null).map((e) => e.valor as number);
+  const amplitudes = eixos.map((e) => e.amplitude).filter((v): v is number => v !== null);
+
+  return {
+    eixos,
+    indiceGeral: comValor.length ? media(comValor) : null,
+    respondentes: validas.length,
+    divergenciaInterna: amplitudes.length ? media(amplitudes) : null,
+    liberado: validas.length >= MINIMO_RESPONDENTES_EXEC,
+  };
+}
+
 /* ─────────────────────────  Nível 2 — a empresa  ───────────────────────── */
 
 export interface LiderNaEmpresa {

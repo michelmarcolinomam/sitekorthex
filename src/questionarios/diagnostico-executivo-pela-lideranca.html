@@ -1,0 +1,615 @@
+<title>Korthex · Diagnóstico do Executivo</title>
+<style>
+  :root{
+    --bg:#F3F1F9; --bg2:#FBFAFE; --card:#FFFFFF; --card2:#F1EEFA;
+    --ink:#1B1826; --ink-soft:#4C4860; --muted:#847F97; --faint:#B7B2C7;
+    --line:#E7E3F1; --line2:#D6D1E6;
+    --accent:#8A2BE2; --accent-bright:#7A11CD; --accent-deep:#6700B2;
+    --accent-soft:#F1E8FF;
+    --neg:#D65A47; --neg2:#E08A3A; --mid:#C6A22E; --pos2:#5FA556; --pos:#2F9E78;
+    --serif:"Iowan Old Style","Palatino Linotype","Palatino","Georgia",serif;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --mono:"SFMono-Regular","SF Mono","Menlo","Consolas",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  .app{min-height:100vh;max-width:760px;margin:0 auto;display:flex;flex-direction:column;padding:0 24px;}
+
+  /* progress */
+  .top{position:sticky;top:0;z-index:20;padding:18px 0 14px;background:linear-gradient(180deg,var(--bg) 70%,transparent);}
+  .bar{height:6px;background:#DBD4ED;border-radius:99px;overflow:hidden;}
+  .bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent-deep),var(--accent));border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+  .top-meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
+  .top-meta .counter-n{color:var(--accent-bright);}
+  .top-meta .brand{color:var(--accent-bright);}
+
+  .stage{flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px 0 40px;}
+  .screen{animation:enter .55s cubic-bezier(.22,1,.36,1) both;}
+  @keyframes enter{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+  .screen.leaving{animation:leave .32s ease forwards;}
+  @keyframes leave{to{opacity:0;transform:translateY(-14px);}}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent-bright);margin-bottom:22px;display:flex;align-items:center;gap:14px;}
+  .eyebrow .ln{flex:none;width:28px;height:1px;background:var(--accent);opacity:.5;}
+
+  h1{font-family:var(--serif);font-weight:600;letter-spacing:-.02em;line-height:1.02;font-size:clamp(2.3rem,7vw,3.6rem);text-wrap:balance;}
+  h1 em{font-style:italic;color:var(--accent-bright);}
+  .q-text{font-family:var(--serif);font-weight:500;letter-spacing:-.015em;line-height:1.16;font-size:clamp(1.55rem,4.4vw,2.35rem);text-wrap:balance;margin-bottom:6px;}
+  .q-hint{color:var(--muted);font-size:.95rem;margin-top:14px;}
+  .lead{color:var(--ink-soft);font-size:1.15rem;line-height:1.55;max-width:52ch;margin-top:22px;}
+
+  /* intro meta chips */
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:34px;}
+  .chip{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line2);background:var(--card);border-radius:99px;padding:9px 16px;font-size:.83rem;color:var(--ink-soft);}
+  .chip i{width:6px;height:6px;border-radius:50%;background:var(--accent-bright);flex:none;}
+
+  .btn{appearance:none;border:none;cursor:pointer;font-family:var(--sans);font-weight:500;font-size:.9rem;letter-spacing:.02em;border-radius:99px;padding:16px 30px;display:inline-flex;align-items:center;gap:12px;transition:transform .15s,background .2s,opacity .2s;}
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 6px 20px -8px var(--accent);}
+  .btn-primary:hover{background:var(--accent-bright);transform:translateY(-1px);}
+  .btn-primary:disabled{background:var(--card2);color:var(--faint);cursor:not-allowed;transform:none;box-shadow:none;}
+  .btn-ghost{background:transparent;color:var(--muted);padding:14px 6px;}
+  .btn-ghost:hover{color:var(--ink);}
+  .btn .arw{font-size:1.1em;}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:8px 0 30px;min-height:64px;}
+
+  /* ── FACES ── */
+  .faces{display:flex;gap:10px;margin-top:38px;justify-content:space-between;}
+  .face{flex:1;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 6px 12px;cursor:pointer;transition:transform .18s,border-color .2s,background .2s;display:flex;flex-direction:column;align-items:center;gap:9px;}
+  .face:hover{transform:translateY(-4px);border-color:var(--line2);background:var(--card2);}
+  .face.sel{border-color:var(--accent);background:var(--accent-soft);transform:translateY(-4px) scale(1.03);box-shadow:0 8px 30px -12px var(--accent);}
+  .face svg{width:44px;height:44px;display:block;}
+  .face .lbl{font-size:.72rem;color:var(--muted);text-align:center;line-height:1.25;}
+  .face.sel .lbl{color:var(--ink);}
+
+  /* ── FREQUENCY / AGREEMENT dots ── */
+  .scale{margin-top:40px;}
+  .scale-track{display:flex;gap:10px;}
+  .seg{flex:1;height:58px;background:var(--card);border:1px solid var(--line);border-radius:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .16s,background .2s,border-color .2s;position:relative;}
+  .seg:hover{border-color:var(--line2);transform:translateY(-3px);}
+  .seg .dot{width:12px;height:12px;border-radius:50%;background:var(--faint);transition:all .2s;}
+  .seg.fill .dot{background:var(--accent-bright);transform:scale(1.15);}
+  .seg.sel{border-color:var(--accent);background:var(--accent-soft);}
+  .seg.sel .dot{background:var(--accent-bright);box-shadow:0 0 0 5px var(--accent-soft);}
+  .scale-poles{display:flex;justify-content:space-between;margin-top:14px;font-size:.85rem;color:var(--muted);}
+  .scale-poles b{color:var(--ink-soft);font-weight:500;}
+
+  /* ── SLIDER (polarity / relevance) ── */
+  .slider{margin-top:44px;}
+  .poles-top{display:flex;justify-content:space-between;gap:18px;margin-bottom:20px;}
+  .pole{flex:1;font-size:.95rem;line-height:1.35;color:var(--ink-soft);}
+  .pole.r{text-align:right;}
+  .pole small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+  .pole.r small{text-align:right;}
+  .range-wrap{position:relative;padding:14px 0;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:99px;background:var(--card2);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:30px;height:30px;border-radius:50%;background:var(--accent-bright);border:5px solid var(--bg);box-shadow:0 4px 16px -4px var(--accent);cursor:grab;transition:transform .15s;}
+  input[type=range]::-webkit-slider-thumb:active{transform:scale(1.12);cursor:grabbing;}
+  input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--accent-bright);border:5px solid var(--bg);cursor:grab;}
+  .range-fill{position:absolute;left:0;top:50%;transform:translateY(-50%);height:8px;border-radius:99px;background:linear-gradient(90deg,var(--accent-deep),var(--accent-bright));pointer-events:none;}
+  .range-ticks{display:flex;justify-content:space-between;margin-top:16px;}
+  .range-ticks span{width:1px;height:8px;background:var(--line2);}
+  .rel-readout{text-align:center;margin-top:18px;font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;min-height:16px;}
+  .rel-readout b{color:var(--accent-bright);font-weight:600;}
+  .untouched .range-fill{opacity:.35;}
+  .untouched input[type=range]::-webkit-slider-thumb{background:var(--faint);box-shadow:none;}
+
+  /* ── SCENARIO cards ── */
+  .cards{display:flex;flex-direction:column;gap:12px;margin-top:36px;}
+  .opt{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:18px 20px;cursor:pointer;transition:transform .16s,border-color .2s,background .2s;text-align:left;}
+  .opt:hover{border-color:var(--line2);background:var(--card2);transform:translateX(4px);}
+  .opt.sel{border-color:var(--accent);background:var(--accent-soft);}
+  .opt .mk{flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line2);display:flex;align-items:center;justify-content:center;transition:all .2s;}
+  .opt.sel .mk{border-color:var(--accent-bright);background:var(--accent-bright);}
+  .opt.sel .mk::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--bg);}
+  .opt .otxt{font-size:1rem;color:var(--ink-soft);line-height:1.4;}
+  .opt.sel .otxt{color:var(--ink);}
+
+  /* ── LEVEL (escala de maturidade) ── */
+  .levels{display:flex;flex-direction:column;gap:10px;margin-top:34px;}
+  .lvl{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;cursor:pointer;transition:transform .16s,border-color .2s,background .2s;text-align:left;}
+  .lvl:hover{border-color:var(--line2);background:var(--card2);transform:translateX(4px);}
+  .lvl.sel{border-color:var(--accent);background:var(--accent-soft);}
+  .lvl .ln{flex:none;width:30px;height:30px;border-radius:9px;background:var(--card2);border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--muted);transition:all .2s;}
+  .lvl.sel .ln{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .lvl .ltxt{font-size:1rem;color:var(--ink-soft);line-height:1.35;}
+  .lvl.sel .ltxt{color:var(--ink);}
+  .lvl-scale{display:flex;justify-content:space-between;margin-top:12px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+
+  /* ── BATTERY (afirmações rápidas) ── */
+  .bat-hint{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-bright);margin:32px 0 4px;}
+  .battery{display:flex;flex-direction:column;gap:12px;margin-top:16px;}
+  .brow{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 18px;display:flex;align-items:center;gap:18px;transition:border-color .2s,background .2s;}
+  .brow.done{border-color:var(--line2);background:var(--card2);}
+  .bstmt{flex:1;font-size:1rem;color:var(--ink-soft);line-height:1.35;}
+  .bscale{display:flex;gap:8px;flex:none;}
+  .bdot{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line2);background:transparent;cursor:pointer;padding:0;transition:transform .15s,background .2s,border-color .2s;}
+  .bdot:hover{border-color:var(--accent);transform:scale(1.12);}
+  .bdot.sel{border-color:var(--accent-bright);background:var(--accent-bright);box-shadow:0 0 0 4px var(--accent-soft);}
+  .bat-poles{display:flex;justify-content:flex-end;gap:0;margin-top:12px;font-size:.8rem;color:var(--muted);}
+  .bat-poles span{width:170px;display:flex;justify-content:space-between;}
+  .bat-poles b{color:var(--ink-soft);font-weight:500;}
+  @media (max-width:560px){
+    .brow{flex-direction:column;align-items:stretch;gap:12px;}
+    .bscale{justify-content:space-between;}.bdot{width:38px;height:38px;}
+    .bat-poles span{width:100%;}
+  }
+
+  /* ── GENDER choice ── */
+  .gender-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:40px;}
+  .gcard{display:flex;flex-direction:column;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:38px 20px;cursor:pointer;transition:transform .16s,border-color .2s,background .2s;color:var(--ink-soft);}
+  .gcard:hover{transform:translateY(-4px);border-color:var(--line2);background:var(--card2);}
+  .gcard.sel{border-color:var(--accent);background:var(--accent-soft);color:var(--ink);}
+  .gcard svg{width:40px;height:40px;stroke:var(--accent-bright);}
+  .gcard span{font-family:var(--serif);font-size:1.35rem;}
+  @media (max-width:560px){.gender-grid{grid-template-columns:1fr;}.gcard{flex-direction:row;justify-content:center;padding:24px;}}
+
+  .anon{display:inline-flex;align-items:center;gap:10px;margin-top:26px;font-size:.82rem;color:var(--muted);}
+  .anon svg{width:15px;height:15px;stroke:var(--accent-bright);}
+
+  .outro-mark{width:78px;height:78px;border-radius:50%;border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:34px;background:var(--accent-soft);}
+  .outro-mark svg{width:34px;height:34px;stroke:var(--accent-bright);}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+  @media (max-width:560px){
+    .faces{gap:6px;}.face svg{width:36px;height:36px;}.face .lbl{font-size:.62rem;}
+    .seg{height:50px;}.poles-top{flex-direction:column;gap:10px;}.pole.r{text-align:left;}.pole.r small{text-align:left;}
+  }
+</style>
+
+<div class="app">
+  <div class="top">
+    <div class="bar"><div class="bar-fill" id="barfill"></div></div>
+    <div class="top-meta"><span class="brand">Korthex · Executivo</span><span id="counter"></span></div>
+  </div>
+  <div class="stage" id="stage"></div>
+  <div class="nav" id="nav"></div>
+</div>
+
+<script>
+const FACE_COLORS=['#D65A47','#E08A3A','#C6A22E','#5FA556','#2F9E78'];
+function faceSVG(level){
+  const c=FACE_COLORS[level];
+  const mouths=[
+    'M16 30 Q22 24 28 30',   // sad
+    'M16 29 Q22 26 28 29',   // meh-down
+    'M16 28 L28 28',         // neutral
+    'M16 27 Q22 31 28 27',   // slight smile
+    'M15 26 Q22 34 29 26'    // happy
+  ];
+  const eyeY=[18,18,18,18,17];
+  return `<svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="22" cy="22" r="20" stroke="${c}" stroke-width="2" fill="${c}22"/>
+    <circle cx="16" cy="${eyeY[level]}" r="2" fill="${c}"/>
+    <circle cx="28" cy="${eyeY[level]}" r="2" fill="${c}"/>
+    <path d="${mouths[level]}" stroke="${c}" stroke-width="2.2" stroke-linecap="round"/>
+  </svg>`;
+}
+
+/* ── DATA MODEL ──
+   type: faces | freq | agree | polarity | relevance | scenario | battery
+   theme: tema Korthex (interno) · facet: faceta (interno) — não exibidos ao respondente
+   reverse: true → resposta "alta" é o comportamento ruim (score invertido)
+   battery.rows: [{text, reverse, facet}] com escala compartilhada (poles)
+*/
+const BLOCKS=[
+ {name:"Consciência & Autopercepção", kicker:"Ninguém no topo enxerga sozinho o efeito que produz. Este bloco é sobre o quanto ele percebe o impacto das próprias reações, decisões e presença no dia a dia de quem trabalha com ele.",
+  questions:[
+   {type:"level", theme:"consciencia", facet:"impacto",
+    text:"Consciência do impacto que o próprio humor causa na operação.",
+    options:["Não percebe: o humor dele vira o clima do dia","Percebe tarde, quando o estrago já foi feito","Percebe, mas raramente ajusta o comportamento","Percebe e regula o efeito sobre a equipe","Percebe, regula e usa a própria presença a favor do time"]},
+   {type:"agree", theme:"consciencia", facet:"abertura", poles:["Discordo","Concordo"],
+    text:"Recebe uma discordância vinda de baixo sem transformar em atrito pessoal."},
+   {type:"scenario", theme:"consciencia", facet:"erro",
+    text:"Quando alguém aponta um erro dele, ele costuma...",
+    options:[
+     {t:"Reagir e encerrar o assunto", s:0},
+     {t:"Ouvir por educação e seguir como estava", s:1},
+     {t:"Aceitar em particular, sem reconhecer na frente dos outros", s:2},
+     {t:"Reconhecer e corrigir a rota", s:3},
+     {t:"Reconhecer, corrigir e agradecer quem apontou", s:4}]},
+   {type:"freq", theme:"consciencia", facet:"escuta", poles:["Nunca","Sempre"],
+    text:"Com que frequência ele pergunta como uma decisão vai afetar a sua área antes de tomá-la?"},
+   {type:"relevance", theme:"consciencia", facet:"autoimagem",
+    text:"O quanto você diria que ele sabe como é, na prática, trabalhar com ele?",
+    lo:"Não faz ideia", hi:"Sabe exatamente"},
+   {type:"battery", theme:"consciencia", poles:["Discordo","Concordo"],
+    rows:[
+     {text:"Admite os próprios limites sem perder autoridade.", facet:"limites"},
+     {text:"Sabe a hora de sair da sala e deixar o time resolver.", facet:"espaco"},
+     {text:"A equipe mede o humor dele antes de trazer um assunto.", reverse:true, facet:"previsibilidade"}]}
+ ]},
+ {name:"Identidade & Posicionamento", kicker:"Toda organização absorve, em alguma medida, a identidade de quem a conduz. Este bloco é sobre a coerência entre o que ele diz, o que ele cobra e o que ele faz — e sobre a credibilidade que isso constrói ou consome.",
+  questions:[
+   {type:"level", theme:"identidade", facet:"coerencia",
+    text:"Coerência entre o que ele cobra e o que ele pratica.",
+    options:["Cobra o que não pratica, e todo mundo nota","A prática contradiz o discurso em pontos importantes","É coerente na maior parte, com exceções conhecidas","Pratica o que cobra, e isso sustenta a cobrança","É o padrão que exige — a coerência dele é o que ensina"]},
+   {type:"agree", theme:"identidade", facet:"regras", poles:["Discordo","Concordo"],
+    text:"As regras da empresa valem para ele do mesmo jeito que valem para os outros."},
+   {type:"scenario", theme:"identidade", facet:"impopular",
+    text:"Quando uma decisão impopular precisa ser comunicada, ele...",
+    options:[
+     {t:"Some e deixa a liderança absorver o desgaste", s:0},
+     {t:"Delega a comunicação sem dar o contexto", s:1},
+     {t:"Comunica, mas joga a responsabilidade para \u2018a empresa\u2019", s:2},
+     {t:"Comunica e assume a decisão como dele", s:3},
+     {t:"Comunica, assume e explica o critério por trás", s:4}]},
+   {type:"freq", theme:"identidade", facet:"criterio", poles:["Nunca","Sempre"],
+    text:"Com que frequência as decisões dele são explicadas por um critério, e não pela vontade do momento?"},
+   {type:"relevance", theme:"identidade", facet:"credibilidade",
+    text:"O quanto você indicaria esta empresa para um profissional que você respeita?",
+    lo:"De jeito nenhum", hi:"Sem pensar duas vezes"},
+   {type:"battery", theme:"identidade", poles:["Discordo","Concordo"],
+    rows:[
+     {text:"Representa a empresa com credibilidade diante de cliente e mercado.", facet:"representacao"},
+     {text:"É a mesma pessoa na frente do time e nos bastidores.", facet:"consistencia"},
+     {text:"Muda de posição conforme quem está na sala.", reverse:true, facet:"firmeza"}]}
+ ]},
+ {name:"Decisão & Gestão Emocional", kicker:"Toda decisão carrega uma carga emocional — e, no topo, ela contamina a empresa inteira. Este bloco é sobre critério, tempo e estabilidade na hora em que a coisa aperta.",
+  questions:[
+   {type:"level", theme:"decisao", facet:"pressao",
+    text:"Estabilidade quando a pressão aumenta.",
+    options:["Desmonta e contamina todo mundo","Fica reativo, e a equipe passa a se proteger dele","Oscila, mas segura o essencial","Mantém a clareza e serve de âncora para os outros","Fica mais claro sob pressão do que na calmaria"]},
+   {type:"level", theme:"decisao", facet:"tempo",
+    text:"Tempo da decisão.",
+    options:["Decide no impulso ou não decide nunca","Decide tarde, quando o custo já subiu","Decide depois de muita hesitação","Decide no tempo certo, com informação suficiente","Decide no tempo certo e já prepara o depois"]},
+   {type:"scenario", theme:"decisao", facet:"crise",
+    text:"Diante de um problema grave, a primeira reação dele é...",
+    options:[
+     {t:"Procurar um culpado", s:0},
+     {t:"Reagir no calor e mandar refazer tudo", s:1},
+     {t:"Congelar até a poeira baixar", s:2},
+     {t:"Entender o que houve antes de decidir", s:3},
+     {t:"Entender, decidir e blindar a equipe do barulho", s:4}]},
+   {type:"freq", theme:"decisao", facet:"reversao", reverse:true, poles:["Nunca","O tempo todo"],
+    text:"Com que frequência uma decisão importante é revertida pouco depois de ter sido tomada?"},
+   {type:"relevance", theme:"decisao", facet:"previsibilidade",
+    text:"O quanto você consegue prever a reação dele ao levar um problema?",
+    lo:"Imprevisível", hi:"Totalmente previsível"},
+   {type:"battery", theme:"decisao", poles:["Discordo","Concordo"],
+    rows:[
+     {text:"Separa o problema da pessoa quando algo dá errado.", facet:"julgamento"},
+     {text:"Sustenta a decisão tomada mesmo sob pressão de fora.", facet:"firmeza"},
+     {text:"O receio da reação dele faz a notícia ruim demorar a subir.", reverse:true, facet:"seguranca"}]}
+ ]},
+ {name:"Liderança & Sucessão", kicker:"O crescimento para quando tudo precisa passar por uma pessoa só. Este bloco é sobre o quanto ele transfere decisão de verdade, forma gente e reduz a dependência de si mesmo.",
+  questions:[
+   {type:"level", theme:"sucessao", facet:"delegacao",
+    text:"Delegação: o que ele transfere de fato.",
+    options:["Nada: tudo volta para a mesa dele","Só tarefa, nunca decisão","Decisão pequena; a que importa ele retoma","Decisão real, com autonomia e cobrança","Decisão real, com apoio para quem erra e aprende"]},
+   {type:"agree", theme:"sucessao", facet:"confianca", poles:["Discordo","Concordo"],
+    text:"Confia na liderança para conduzir a área sem acompanhamento diário."},
+   {type:"freq", theme:"sucessao", facet:"microgestao", reverse:true, poles:["Nunca","O tempo todo"],
+    text:"Com que frequência ele desfaz, por fora, uma decisão que já era sua?"},
+   {type:"scenario", theme:"sucessao", facet:"problema",
+    text:"Quando você leva um problema da sua área, ele...",
+    options:[
+     {t:"Toma o problema para si e te tira do caminho", s:0},
+     {t:"Entrega a solução pronta", s:1},
+     {t:"Cobra a solução sem dar contexto", s:2},
+     {t:"Discute o caminho e deixa a decisão com você", s:3},
+     {t:"Discute, deixa a decisão com você e banca o resultado", s:4}]},
+   {type:"relevance", theme:"sucessao", facet:"dependencia",
+    text:"Se ele passasse um mês inteiro fora, o quanto a operação seguiria bem?",
+    lo:"Pararia", hi:"Seguiria sem tropeço"},
+   {type:"battery", theme:"sucessao", poles:["Discordo","Concordo"],
+    rows:[
+     {text:"Investe tempo em desenvolver quem lidera.", facet:"desenvolvimento"},
+     {text:"Forma gente para o lugar dele, não só para o lugar de baixo.", facet:"sucessao"},
+     {text:"Gente boa vai embora daqui por não enxergar espaço para crescer.", reverse:true, facet:"retencao"}]}
+ ]},
+ {name:"Visão de Futuro & Cultura", kicker:"Cultura é o que as decisões repetidas constroem, não o que está escrito na parede. Este bloco é sobre a direção que ele dá e sobre a empresa que as escolhas dele estão criando.",
+  questions:[
+   {type:"level", theme:"cultura", facet:"direcao",
+    text:"Clareza da direção que ele dá para a empresa.",
+    options:["Ninguém sabe para onde a empresa vai","A direção muda conforme o mês","Existe um rumo, mas pouca gente sabe explicar","A direção é clara e chega à liderança","A direção é clara e cada área sabe o seu papel nela"]},
+   {type:"agree", theme:"cultura", facet:"traducao", poles:["Discordo","Concordo"],
+    text:"Sei explicar, com as minhas palavras, para onde a empresa está indo."},
+   {type:"freq", theme:"cultura", facet:"prioridades", reverse:true, poles:["Nunca","O tempo todo"],
+    text:"Com que frequência as prioridades mudam sem explicação?"},
+   {type:"scenario", theme:"cultura", facet:"cultura",
+    text:"Quando um bom resultado vem de um comportamento que contraria o que a empresa diz defender, ele...",
+    options:[
+     {t:"Comemora o resultado e ignora o resto", s:0},
+     {t:"Faz vista grossa para não perder o número", s:1},
+     {t:"Comenta em particular, sem consequência nenhuma", s:2},
+     {t:"Corrige o comportamento, mesmo custando o resultado", s:3},
+     {t:"Corrige, explica o critério, e o time entende o que vale aqui", s:4}]},
+   {type:"relevance", theme:"cultura", facet:"futuro",
+    text:"O quanto você acredita no futuro que ele desenha para a empresa?",
+    lo:"Não acredito", hi:"Acredito por inteiro"},
+   {type:"battery", theme:"cultura", poles:["Discordo","Concordo"],
+    rows:[
+     {text:"Sabe dizer não a uma oportunidade que não cabe no plano.", facet:"foco"},
+     {text:"As decisões dele constroem o tipo de empresa que ele diz querer.", facet:"coerencia"},
+     {text:"A cultura real daqui é diferente da que está escrita.", reverse:true, facet:"cultura_real"}]}
+ ]}
+];
+
+const TOTAL=BLOCKS.reduce((a,b)=>a+b.questions.reduce((x,q)=>x+(q.type==="battery"?q.rows.length:1),0),0);
+
+/* ── Flexão de gênero da liderança (m = padrão masculino, f = feminino) ── */
+let G='m';
+function gz(s){
+  if(!s || G==='m') return s;
+  const rules=[
+    [/\bo executivo\b/g,'a executiva'],[/\bO executivo\b/g,'A executiva'],
+    [/\bdeste executivo\b/g,'desta executiva'],[/\bdo executivo\b/g,'da executiva'],
+    [/\bao executivo\b/g,'à executiva'],[/\bexecutivo\b/g,'executiva'],
+    [/\bo dono\b/g,'a dona'],[/\bO dono\b/g,'A dona'],[/\bdo dono\b/g,'da dona'],
+    [/\breativo\b/g,'reativa'],[/\bmais claro\b/g,'mais clara'],
+    [/\bcoerente na maior parte\b/g,'coerente na maior parte'],
+    [/\bo seu líder\b/g,'a sua líder'],[/\bO seu líder\b/g,'A sua líder'],
+    [/\beste líder\b/g,'esta líder'],[/\bEste líder\b/g,'Esta líder'],
+    [/\bdeste líder\b/g,'desta líder'],[/\bneste líder\b/g,'nesta líder'],
+    [/\bseu líder\b/g,'sua líder'],[/\bSeu líder\b/g,'Sua líder'],
+    [/\bmeu líder\b/g,'minha líder'],[/\bMeu líder\b/g,'Minha líder'],
+    [/\bo líder\b/g,'a líder'],[/\bO líder\b/g,'A líder'],
+    [/\bdo líder\b/g,'da líder'],[/\bao líder\b/g,'à líder'],[/\bno líder\b/g,'na líder'],
+    [/\bdele\b/g,'dela'],[/\bDele\b/g,'Dela'],
+    [/\bele\b/g,'ela'],[/\bEle\b/g,'Ela'],
+    [/é o mesmo\b/g,'é a mesma'],[/É o mesmo\b/g,'É a mesma'],
+    [/\bverdadeiro\b/g,'verdadeira'],[/\bguardião\b/g,'guardiã'],
+    [/\btranquilo\b/g,'tranquila'],[/\bbravo\b/g,'brava'],[/\bsozinho\b/g,'sozinha'],
+    [/\bpreparado\b/g,'preparada'],[/\bfocado\b/g,'focada']
+  ];
+  return rules.reduce((t,[re,r])=>t.replace(re,r), s);
+}
+// build flat screen list
+const SCREENS=[{t:"intro"},{t:"gender"}];
+BLOCKS.forEach((b,bi)=>{
+  SCREENS.push({t:"block",bi});
+  b.questions.forEach((q,qi)=>SCREENS.push({t:"q",bi,qi}));
+});
+SCREENS.push({t:"outro"});
+
+const answers={}; // key `${bi}.${qi}` -> {value, score}
+let idx=0;
+
+const stage=document.getElementById('stage');
+const nav=document.getElementById('nav');
+const barfill=document.getElementById('barfill');
+const counter=document.getElementById('counter');
+
+function answeredCount(){return Object.keys(answers).length;}
+function qNumber(bi,qi){let n=0;for(let i=0;i<bi;i++)n+=BLOCKS[i].questions.length;return n+qi+1;}
+
+function transition(html,cb){
+  const cur=stage.querySelector('.screen');
+  const render=()=>{stage.innerHTML=html;if(cb)cb();};
+  if(cur){cur.classList.add('leaving');setTimeout(render,300);}else render();
+}
+
+function go(n){idx=Math.max(0,Math.min(SCREENS.length-1,n));paint();}
+
+function paint(){
+  const s=SCREENS[idx];
+  barfill.style.width=(answeredCount()/TOTAL*100)+'%';
+  if(s.t==="q"){counter.textContent=`${answeredCount()} / ${TOTAL} avaliadas`;}
+  else if(s.t==="block"){counter.textContent=`Bloco ${s.bi+1} de ${BLOCKS.length}`;}
+  else counter.textContent="";
+
+  if(s.t==="intro")return paintIntro();
+  if(s.t==="gender")return paintGender();
+  if(s.t==="block")return paintBlock(s.bi);
+  if(s.t==="outro")return paintOutro();
+  paintQ(s.bi,s.qi);
+}
+
+function setNav(html){nav.innerHTML=html;}
+
+function paintIntro(){
+  transition(`<div class="screen">
+    <div class="eyebrow"><span class="ln"></span>Korthex Executivo · Leitura da liderança</div>
+    <h1>O que ninguém costuma dizer para quem está no <em>topo</em>.</h1>
+    <p class="lead">Você convive com as decisões de quem conduz esta empresa e sente o efeito delas na sua área todos os dias. Esta leitura existe para transformar essa percepção em dado — com método, sem queixa e sem rodeio. O que se procura aqui não é a opinião sobre uma pessoa: é o retrato de como a condução do topo chega embaixo.</p>
+    <div class="chips">
+      <span class="chip"><i></i>${TOTAL} avaliações</span>
+      <span class="chip"><i></i>~7 minutos</span>
+      <span class="chip"><i></i>5 eixos</span>
+    </div>
+    <div class="anon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      Anônimo — nada aqui identifica quem respondeu. As respostas entram somadas às dos outros líderes, e o retrato devolvido é sempre do conjunto.
+    </div>
+  </div>`);
+  setNav(`<span></span><button class="btn btn-primary" onclick="go(1)">Começar <span class="arw">→</span></button>`);
+}
+
+function setG(g){G=g;go(idx+1);}
+
+function paintGender(){
+  transition(`<div class="screen">
+    <div class="eyebrow"><span class="ln"></span>Antes de começar</div>
+    <h1>O executivo que você vai avaliar é um <em>homem</em> ou uma <em>mulher</em>?</h1>
+    <p class="lead">Para ajustar a linguagem da avaliação — no masculino ou no feminino.</p>
+    <div class="gender-grid">
+      <button class="gcard ${G==='m'?'sel':''}" onclick="setG('m')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14" r="6"/><path d="M14.5 9.5 20 4M20 4h-5M20 4v5"/></svg>
+        <span>Um homem</span>
+      </button>
+      <button class="gcard ${G==='f'?'sel':''}" onclick="setG('f')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M12 15v7M9 19h6"/></svg>
+        <span>Uma mulher</span>
+      </button>
+    </div>
+  </div>`);
+  setNav(`<button class="btn btn-ghost" onclick="go(${idx-1})">← Voltar</button><span></span>`);
+}
+
+function paintBlock(bi){
+  const b=BLOCKS[bi];
+  transition(`<div class="screen">
+    <div class="eyebrow"><span class="ln"></span>Bloco ${String(bi+1).padStart(2,'0')}</div>
+    <h1>${b.name}<em>.</em></h1>
+    <p class="lead">${gz(b.kicker)}</p>
+  </div>`);
+  setNav(`<button class="btn btn-ghost" onclick="go(${idx-1})">← Voltar</button>
+    <button class="btn btn-primary" onclick="go(${idx+1})">Vamos lá <span class="arw">→</span></button>`);
+}
+
+function paintOutro(){
+  transition(`<div class="screen">
+    <div class="outro-mark"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+    <div class="eyebrow"><span class="ln"></span>Avaliação concluída</div>
+    <h1>Leitura <em>registrada</em>.</h1>
+    <p class="lead">Suas respostas entram somadas às dos outros líderes — o retrato que a Korthex devolve é do conjunto, nunca de uma pessoa. Obrigado pela honestidade: é ela que faz o diagnóstico valer alguma coisa.</p>
+  </div>`);
+  setNav(`<button class="btn btn-ghost" onclick="go(1)">↺ Recomeçar</button><span></span>`);
+}
+
+function paintQ(bi,qi){
+  const q=BLOCKS[bi].questions[qi];
+  const key=`${bi}.${qi}`;
+  const prev=answers[key];
+  let body="";
+  if(q.type==="faces"){
+    body=`<div class="faces">`+q.labels.map((l,i)=>
+      `<div class="face ${prev&&prev.value===i?'sel':''}" onclick="pick('${key}',${i},${i},true)">${faceSVG(i)}<span class="lbl">${gz(l)}</span></div>`).join('')+`</div>`;
+  }
+  else if(q.type==="freq"||q.type==="agree"){
+    const sc=i=> q.reverse? (4-i): i;
+    body=`<div class="scale"><div class="scale-track">`+[0,1,2,3,4].map(i=>{
+      const on=prev&&prev.value>=i, sel=prev&&prev.value===i;
+      return `<div class="seg ${on?'fill':''} ${sel?'sel':''}" onmouseover="hoverSeg(this)" onclick="pick('${key}',${i},${sc(i)},true)"><span class="dot"></span></div>`;
+    }).join('')+`</div><div class="scale-poles"><b>${q.poles[0]}</b><b>${q.poles[1]}</b></div></div>`;
+  }
+  else if(q.type==="polarity"||q.type==="relevance"){
+    const val=prev?prev.value:50;
+    const isPol=q.type==="polarity";
+    const topL = isPol? `<div class="pole"><small>${q.left.tag}</small>${gz(q.left.t)}</div><div class="pole r"><small>${q.right.tag}</small>${gz(q.right.t)}</div>`
+                      : `<div class="pole"><small>Menos</small>${gz(q.lo)}</div><div class="pole r"><small>Mais</small>${gz(q.hi)}</div>`;
+    body=`<div class="slider ${prev?'':'untouched'}" id="sl_${key.replace('.','_')}">
+      <div class="poles-top">${topL}</div>
+      <div class="range-wrap">
+        <div class="range-fill" style="width:${val}%"></div>
+        <input type="range" min="0" max="100" value="${val}" oninput="dragSlide('${key}',this)" onchange="settleSlide('${key}',this)">
+      </div>
+      <div class="range-ticks"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="rel-readout" id="ro_${key.replace('.','_')}">${prev?readout(val):'&nbsp;'}</div>
+    </div>`;
+  }
+  else if(q.type==="scenario"){
+    body=`<div class="cards">`+q.options.map((o,i)=>
+      `<button class="opt ${prev&&prev.value===i?'sel':''}" onclick="pick('${key}',${i},${o.s},true)"><span class="mk"></span><span class="otxt">${gz(o.t)}</span></button>`).join('')+`</div>`;
+  }
+  else if(q.type==="level"){
+    body=`<div class="levels">`+q.options.map((o,i)=>
+      `<button class="lvl ${prev&&prev.value===i?'sel':''}" onclick="pick('${key}',${i},${i},true)"><span class="ln">${i}</span><span class="ltxt">${gz(o)}</span></button>`).join('')+`</div>
+      <div class="lvl-scale"><span>Não demonstra</span><span>É referência</span></div>`;
+  }
+  else if(q.type==="battery"){
+    body=`<div class="battery">`+q.rows.map((r,ri)=>{
+      const k=`${bi}.${qi}.${ri}`;const pv=answers[k];
+      const dots=[0,1,2,3,4].map(i=>{
+        const sc=r.reverse?4-i:i;
+        return `<button class="bdot ${pv&&pv.value===i?'sel':''}" aria-label="nível ${i+1}" onclick="pickRow('${k}',${i},${sc})"></button>`;
+      }).join('');
+      return `<div class="brow ${pv?'done':''}"><span class="bstmt">${gz(r.text)}</span><span class="bscale">${dots}</span></div>`;
+    }).join('')+`</div>
+    <div class="bat-poles"><span><b>${q.poles[0]}</b><b>${q.poles[1]}</b></span></div>`;
+  }
+
+  const label = q.type==="battery"
+    ? `<div class="eyebrow"><span class="ln"></span>${BLOCKS[bi].name} · rápidas</div>
+       <p class="q-text">${gz("O quanto cada frase combina com o executivo que você avalia?")}</p>
+       <p class="q-hint">${hintFor(q)}</p>
+       <div class="bat-hint">${q.rows.length} frases rápidas</div>`
+    : `<div class="eyebrow"><span class="ln"></span>${BLOCKS[bi].name}</div>
+       <p class="q-text">${gz(q.text)}</p>
+       <p class="q-hint">${hintFor(q)}</p>`;
+
+  transition(`<div class="screen">${label}${body}</div>`, ()=>updateNav(key,q));
+}
+
+function readout(v){
+  const words=['Nada','Pouco','Mais ou menos','Bastante','Totalmente'];
+  const w=words[Math.min(4,Math.floor(v/20.01))];
+  return `<b>${w}</b>`;
+}
+function hintFor(q){
+  switch(q.type){
+    case "faces": return "Toque no rosto que mais tem a ver.";
+    case "freq": case "agree": return `Toque no ponto que mais combina — de "${q.poles[0]}" a "${q.poles[1]}".`;
+    case "polarity": return "Arraste a bolinha para o lado que mais tem a ver.";
+    case "relevance": return "Arraste a barra até o ponto que você achar.";
+    case "scenario": return "Selecione o cenário que melhor corresponde à realidade.";
+    case "level": return "Selecione o nível que melhor descreve o desempenho atual.";
+    case "battery": return "Em cada afirmação, marque o seu grau de concordância.";
+  }
+  return "";
+}
+function hoverSeg(el){
+  const segs=[...el.parentElement.children];const i=segs.indexOf(el);
+  segs.forEach((s,j)=>s.querySelector('.dot').style.background=j<=i?'var(--accent-bright)':'');
+}
+function dragSlide(key,el){
+  const v=+el.value;const base=key.replace('.','_');
+  el.closest('.slider').classList.remove('untouched');
+  el.closest('.range-wrap').querySelector('.range-fill').style.width=v+'%';
+  document.getElementById('ro_'+base).innerHTML=readout(v);
+}
+function settleSlide(key,el){
+  const v=+el.value;
+  const s=SCREENS[idx];const q=BLOCKS[s.bi].questions[s.qi];
+  answers[key]={value:v,score:Math.round(v/25)};
+  barfill.style.width=(answeredCount()/TOTAL*100)+'%';
+  updateNav(key,q);
+}
+
+function pick(key,value,score,auto){
+  answers[key]={value,score};
+  // reflect selection immediately
+  const s=SCREENS[idx];paintQ.__lock=false;
+  barfill.style.width=(answeredCount()/TOTAL*100)+'%';
+  // re-render current question to show selection, then auto-advance
+  const scr=stage.querySelector('.screen');
+  if(scr){
+    scr.querySelectorAll('.face,.seg,.opt').forEach(el=>el.classList.remove('sel','fill'));
+  }
+  // simplest: repaint then advance
+  paintQ(s.bi,s.qi);
+  if(auto){setTimeout(()=>{ if(idx<SCREENS.length-1) go(idx+1); }, 340);}
+}
+
+function pickRow(k,value,score){
+  answers[k]={value,score};
+  const s=SCREENS[idx];const q=BLOCKS[s.bi].questions[s.qi];
+  // reflect selection + done state without a full re-enter animation
+  const [bi,qi,ri]=k.split('.').map(Number);
+  const rows=stage.querySelectorAll('.brow');
+  const row=rows[ri];
+  if(row){
+    row.classList.add('done');
+    row.querySelectorAll('.bdot').forEach((d,i)=>d.classList.toggle('sel',i===value));
+  }
+  barfill.style.width=(answeredCount()/TOTAL*100)+'%';
+  counter.textContent=`${answeredCount()} / ${TOTAL}`;
+  updateNav(`${bi}.${qi}`,q);
+}
+
+function batteryComplete(bi,qi,q){
+  return q.rows.every((r,ri)=>answers[`${bi}.${qi}.${ri}`]!==undefined);
+}
+
+function updateNav(key,q){
+  let answered;
+  if(q.type==="battery"){const [bi,qi]=key.split('.').map(Number);answered=batteryComplete(bi,qi,q);}
+  else answered=answers[key]!==undefined;
+  const backBtn=`<button class="btn btn-ghost" onclick="go(${idx-1})">← Voltar</button>`;
+  const nextBtn=`<button class="btn btn-primary" ${answered?'':'disabled'} onclick="go(${idx+1})">Próxima <span class="arw">→</span></button>`;
+  setNav(backBtn+nextBtn);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='Enter'){const b=nav.querySelector('.btn-primary:not(:disabled)');if(b)b.click();}
+  if(e.key==='ArrowLeft'){const b=nav.querySelector('.btn-ghost');if(b)b.click();}
+});
+
+paint();
+</script>
