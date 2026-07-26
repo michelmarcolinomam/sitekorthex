@@ -5,6 +5,7 @@ import { supabaseKorthex } from "./korthex-db";
 import { panoramaDoCliente } from "./diag-panorama";
 import {
   chaveDaOferta,
+  sinaisPorPublico,
   sugereOfertas,
   tituloOportunidade,
   ESTAGIOS_ABERTOS,
@@ -112,7 +113,12 @@ function montaLinha(o: LinhaCrua, ultimoContato: string | undefined, agora: numb
       ? { nome: c.responsavel_nome, email: c.responsavel_email, telefone: c.responsavel_telefone }
       : null,
     lider_nome: l?.nome ?? null,
-    titulo: tituloOportunidade({ formato: o.formato, treinamento: o.treinamento, lider_nome: l?.nome ?? null }),
+    titulo: tituloOportunidade({
+      programa: o.programa,
+      formato: o.formato,
+      treinamento: o.treinamento,
+      lider_nome: l?.nome ?? null,
+    }),
     diasParado: diasEntre(o.estagio_em, agora),
     diasSemContato: ultimoContato ? diasEntre(ultimoContato, agora) : null,
   };
@@ -179,10 +185,26 @@ export const adminListOportunidades = createServerFn({ method: "GET" })
 /* ────────────────────────  Montar a oferta  ──────────────────────── */
 
 export interface OfertaParaMontar {
-  cliente: { id: string; empresa: string; chave: string; responsavel_nome: string | null; responsavel_email: string | null };
+  cliente: {
+    id: string;
+    empresa: string;
+    chave: string;
+    responsavel_nome: string | null;
+    responsavel_cargo: string | null;
+    responsavel_email: string | null;
+    responsavel_telefone: string | null;
+  };
   /** Nulo quando o diagnóstico ainda não tem resposta suficiente para calcular. */
   indiceGeral: number | null;
   totalLideres: number;
+  totalRespondentes: number;
+  /** Quando chegou a última resposta — a data que datou o diagnóstico. */
+  concluidoEm: string | null;
+  /** As dimensões da empresa, do pior para o melhor: a evidência do cabeçalho. */
+  dimensoes: { chave: string; nome: string; valor: number; faixa: "hi" | "mid" | "lo"; rotulo: string }[];
+  lideres: { id: string | null; nome: string; cargo: string | null; indice: number; classificacao: string }[];
+  /** A frase de abertura de cada público. Nulo = sem sinal, e a tela não inventa. */
+  sinais: Record<ProgramaChave, string | null>;
   sugestoes: SugestaoOferta[];
   /** O que já virou oportunidade — a tela mostra em vez de deixar duplicar. */
   existentes: OportunidadeNoFunil[];
@@ -201,7 +223,7 @@ export const adminOfertaDoCliente = createServerFn({ method: "GET" })
 
     const { data: cliente, error } = await db
       .from("clientes")
-      .select("id, nome_empresa, chave, responsavel_nome, responsavel_email")
+      .select("id, nome_empresa, chave, responsavel_nome, responsavel_cargo, responsavel_email, responsavel_telefone")
       .eq("id", clienteId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -218,6 +240,24 @@ export const adminOfertaDoCliente = createServerFn({ method: "GET" })
     const idPorLider: Record<string, string> = {};
     for (const l of lideres ?? []) idPorLider[l.nome as string] = l.id as string;
 
+    // A data do diagnóstico é a da última resposta que chegou.
+    const { data: ultima } = await db
+      .from("avaliacoes")
+      .select("id")
+      .eq("cliente_id", clienteId)
+      .neq("status", "arquivada");
+    let concluidoEm: string | null = null;
+    const idsAv = (ultima ?? []).map((a) => a.id as string);
+    if (idsAv.length) {
+      const { data: rs } = await db
+        .from("respostas")
+        .select("created_at")
+        .in("avaliacao_id", idsAv)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      concluidoEm = (rs?.[0]?.created_at as string) ?? null;
+    }
+
     const existentes = ((existentesCruas ?? []) as unknown as LinhaCrua[]).map((o) =>
       montaLinha(o, undefined, agora),
     );
@@ -233,16 +273,39 @@ export const adminOfertaDoCliente = createServerFn({ method: "GET" })
       jaExiste: abertas.has(chaveDaOferta(s)),
     }));
 
+    const emp = panorama?.resultado ?? null;
+
     return {
       cliente: {
         id: cliente.id as string,
         empresa: cliente.nome_empresa as string,
         chave: cliente.chave as string,
         responsavel_nome: cliente.responsavel_nome as string | null,
+        responsavel_cargo: cliente.responsavel_cargo as string | null,
         responsavel_email: cliente.responsavel_email as string | null,
+        responsavel_telefone: cliente.responsavel_telefone as string | null,
       },
-      indiceGeral: panorama?.resultado?.indiceGeral ?? null,
-      totalLideres: panorama?.resultado?.lideres.length ?? 0,
+      indiceGeral: emp?.indiceGeral ?? null,
+      totalLideres: emp?.lideres.length ?? 0,
+      totalRespondentes: panorama?.totalRespondentes ?? 0,
+      concluidoEm,
+      dimensoes: (emp?.porDimensao ?? []).map((d) => ({
+        chave: d.chave as string,
+        nome: d.nome,
+        valor: d.valor,
+        faixa: d.band,
+        rotulo: d.rotulo,
+      })),
+      lideres: (emp?.ranking ?? []).map((l) => ({
+        id: idPorLider[l.nome] ?? null,
+        nome: l.nome,
+        cargo: l.cargo,
+        indice: l.indiceGeral,
+        classificacao: l.classificacao.rotulo,
+      })),
+      sinais: panorama
+        ? sinaisPorPublico(panorama)
+        : { executivo: null, lideranca: null, performance: null },
       sugestoes,
       existentes,
     };

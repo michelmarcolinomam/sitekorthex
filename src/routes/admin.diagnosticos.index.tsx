@@ -440,7 +440,11 @@ function LinhaCliente({
       <div className="cta">
         {c.etapa === "pronto" ? (
           <>
-            <a href={destino.href}>{destino.texto}</a>
+            {/* Diagnóstico fechado é oferta esperando: a ação principal aqui é vender. */}
+            <a href={`/admin/diagnosticos/oferta/${c.id}`}>Montar oferta →</a>
+            <a className="sec" href={destino.href}>
+              {destino.texto}
+            </a>
             <a className="sec" href={`/diagnosticos/${c.chave}`} target="_blank" rel="noopener noreferrer">
               Abrir painel do cliente
             </a>

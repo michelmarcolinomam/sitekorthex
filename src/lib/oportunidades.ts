@@ -78,6 +78,26 @@ export const ROTULO_FORCA: Record<ForcaEvidencia, string> = {
 };
 
 /**
+ * O nome da mentoria em cada público — também o do site, sem invenção:
+ * "Mentoria & Acompanhamento" é como src/routes/lideranca.tsx chama, e
+ * "Mentoria para Fundadores e CEOs" é como o Korthex Executivo se apresenta.
+ */
+export const NOME_MENTORIA: Record<ProgramaChave, string> = {
+  lideranca: "Mentoria & Acompanhamento",
+  executivo: "Mentoria para Fundadores e CEOs",
+  performance: "Mentoria & Acompanhamento",
+};
+
+/** Os 5 eixos do Korthex Executivo, como estão em src/routes/korthex-executivo.tsx. */
+export const EIXOS_EXECUTIVO = [
+  "Consciência & Autopercepção",
+  "Identidade & Posicionamento",
+  "Decisão & Gestão Emocional",
+  "Liderança & Sucessão",
+  "Visão de Futuro & Cultura",
+] as const;
+
+/**
  * Os treinamentos do Korthex Performance, com o título do site
  * (src/routes/performance.tsx). O sexto — "Projeto de Vida & Produtividade" —
  * não tem dimensão correspondente no diagnóstico da liderança e por isso não
@@ -188,6 +208,8 @@ export interface SugestaoOferta {
   treinamento: string | null;
   lider_id: string | null;
   lider_nome: string | null;
+  /** O nome do produto como aparece na tela — sempre o do site. */
+  nome: string;
   dimensoes: ChaveDimensao[];
   forca: ForcaEvidencia;
   /** O rótulo da camada da oferta: prioritária, preventiva, complementar. */
@@ -254,6 +276,7 @@ export function sugereOfertas(
       treinamento,
       lider_id: null,
       lider_nome: null,
+      nome: treinamento,
       dimensoes: alvos.map((a) => a.chave),
       forca: alvos.some((a) => a.band === "lo") ? "forte" : "atencao",
       rotulo: ehPrioritaria
@@ -296,6 +319,7 @@ export function sugereOfertas(
       treinamento: null,
       lider_id: idPorLider[l.nome] ?? null,
       lider_nome: l.nome,
+      nome: `${NOME_MENTORIA.lideranca} · ${l.nome}`,
       dimensoes: piores.map((p) => p.chave),
       forca: l.classificacao.chave === "emerg" ? "forte" : "atencao",
       rotulo: "Frente complementar · acompanhamento individual",
@@ -319,25 +343,44 @@ export function sugereOfertas(
     });
   }
 
-  /* ── Korthex Executivo: quando o topo enxerga diferente do chão ──
-     O diagnóstico não avalia o executivo. O que ele mede é a DISTÂNCIA entre o
-     que o topo enxerga e o que a equipe sente — e isso é leitura sobre o topo.
-     Vale como conversa, marcada como hipótese. */
-  if (panorama.divergencia !== null && panorama.divergencia >= 10) {
+  /* ── Korthex Executivo: dois sinais sobre o TOPO ──
+     O diagnóstico não avalia o executivo. O que ele deixa ver sobre o topo é
+     (a) a DISTÂNCIA entre o que os sócios enxergam e o que a equipe sente e
+     (b) a AUTONOMIA represada — delegação que não desce costuma ser decisão de
+     quem está em cima, não incapacidade de quem está embaixo. Os dois valem
+     como conversa; nenhum é medição. Por isso, hipótese e sem pré-marcação. */
+  const autonomia = emp.porDimensao.find((d) => d.chave === "autonomia") ?? null;
+  const topoDistante = panorama.divergencia !== null && panorama.divergencia >= 10;
+  const autonomiaRepresada = autonomia !== null && autonomia.band !== "hi";
+
+  if (topoDistante || autonomiaRepresada) {
     sugestoes.push({
       programa: "executivo",
       formato: "mentoria",
       treinamento: null,
       lider_id: null,
       lider_nome: null,
-      dimensoes: [],
+      nome: NOME_MENTORIA.executivo,
+      dimensoes: autonomia && autonomia.band !== "hi" ? ["autonomia"] : [],
       forca: "hipotese",
       rotulo: "Hipótese · leitura do topo",
-      resumo: `Os sócios avaliam a liderança ${panorama.divergencia} pontos acima do que as equipes sentem. Distância de percepção no topo — conversa de mentoria executiva, ainda não medida.`,
+      resumo: [
+        topoDistante
+          ? `Os sócios avaliam a liderança ${panorama.divergencia} pontos acima do que as equipes sentem — a distância está no topo.`
+          : null,
+        autonomiaRepresada
+          ? `${autonomia!.nome} em ${autonomia!.valor}: delegação que não desce costuma ser decisão de quem está em cima. Eixos ${EIXOS_EXECUTIVO[3]} e ${EIXOS_EXECUTIVO[2]}.`
+          : null,
+        "Nada disso foi medido no executivo — é conversa, não diagnóstico.",
+      ]
+        .filter(Boolean)
+        .join(" "),
       evidencia: {
         nivel: "empresa",
         indiceGeral: emp.indiceGeral,
-        dimensoes: [],
+        dimensoes: autonomiaRepresada
+          ? [{ chave: "autonomia" as ChaveDimensao, nome: autonomia!.nome, valor: autonomia!.valor, faixa: autonomia!.band }]
+          : [],
         totalLideres,
         lidoEm,
       },
@@ -357,6 +400,7 @@ export function sugereOfertas(
       treinamento: TREINAMENTO_PERFORMANCE[piorDaEmpresa.chave],
       lider_id: null,
       lider_nome: null,
+      nome: TREINAMENTO_PERFORMANCE[piorDaEmpresa.chave],
       dimensoes: [piorDaEmpresa.chave],
       forca: "hipotese",
       rotulo: "Hipótese · não medida neste diagnóstico",
@@ -384,12 +428,71 @@ export function sugereOfertas(
 
 /** Nome de exibição de uma oportunidade — o que aparece na linha do funil. */
 export function tituloOportunidade(o: {
+  programa: ProgramaChave;
   formato: FormatoOferta;
   treinamento: string | null;
   lider_nome?: string | null;
 }): string {
   if (o.formato === "treinamento") return o.treinamento ?? "—";
-  return o.lider_nome ? `Mentoria individual · ${o.lider_nome}` : "Mentoria individual";
+  const nome = NOME_MENTORIA[o.programa];
+  return o.lider_nome ? `${nome} · ${o.lider_nome}` : nome;
 }
+
+/**
+ * A frase de abertura de cada público na tela "Montar oferta": o que o
+ * diagnóstico mostrou que justifica falar daquele público. Nulo = não há sinal,
+ * e a tela não inventa um.
+ */
+export function sinaisPorPublico(panorama: PanoramaEmpresa): Record<ProgramaChave, string | null> {
+  const emp = panorama.resultado;
+  if (!emp) return { executivo: null, lideranca: null, performance: null };
+
+  const autonomia = emp.porDimensao.find((d) => d.chave === "autonomia") ?? null;
+  const frageis = emp.porDimensao.filter((d) => d.band === "lo");
+  const atencao = emp.porDimensao.filter((d) => d.band === "mid");
+  const pedemMentoria = emp.ranking.filter(
+    (l) => l.classificacao.chave === "ment" || l.classificacao.chave === "emerg",
+  );
+
+  const executivo = (() => {
+    const partes: string[] = [];
+    if (panorama.divergencia !== null && panorama.divergencia >= 10) {
+      partes.push(
+        `os sócios avaliam a liderança ${panorama.divergencia} pontos acima do que as equipes sentem`,
+      );
+    }
+    if (autonomia && autonomia.band !== "hi") {
+      partes.push(`a autonomia da liderança está em ${autonomia.valor}`);
+    }
+    if (!partes.length) return null;
+    return `${partes.join(" e ")}. Delegação represada e distância de percepção são temas de quem está em cima — mentoria do executivo, não treinamento da liderança.`;
+  })();
+
+  const lideranca = (() => {
+    const partes: string[] = [];
+    if (frageis.length) {
+      partes.push(
+        `${frageis.map((d) => `${d.nome} (${d.valor})`).join(" e ")} ${frageis.length === 1 ? "está frágil" : "estão frágeis"} e ${frageis.length === 1 ? "tem" : "têm"} treinamento correspondente`,
+      );
+    }
+    if (atencao.length) {
+      partes.push(
+        `${atencao.map((d) => d.nome).join(", ")} ${atencao.length === 1 ? "está" : "estão"} em zona de atenção — treinar antes de quebrar custa uma fração de recuperar depois`,
+      );
+    }
+    if (pedemMentoria.length) {
+      partes.push(
+        `${pedemMentoria.map((l) => `${l.nome} (${l.indiceGeral})`).join(" e ")} ${pedemMentoria.length === 1 ? "cai" : "caem"} na faixa de mentoria individual pela régua`,
+      );
+    }
+    return partes.length ? `${partes.join(". ")}.` : null;
+  })();
+
+  return { executivo, lideranca, performance: null };
+}
+
+/** O aviso que sempre acompanha o Korthex Performance. Não é opcional. */
+export const AVISO_PERFORMANCE =
+  "Este diagnóstico mede a liderança pela ótica do time — ele não avalia o time. As indicações abaixo são hipóteses a partir do que a equipe relatou sobre o líder, não medição direta. Para evidência real, o caminho é aplicar o diagnóstico de Performance.";
 
 export { nomeDim as nomeDaDimensao };
