@@ -112,3 +112,10 @@
 /* Os dois cards da síntese têm alturas naturais diferentes — sem isto, o lado
    com menos conteúdo estica e vira uma caixa vazia grande. */
 .kx-exec .duo { align-items: start; }
+
+/* Zona da oferta: a faixa roxa abre a seção e o que vem depois pertence a ela.
+   Sem isto, uma linha divisória cortava o bloco no meio e a faixa encostava no
+   conteúdo de cima. */
+.kx-exec .oferta-topo { margin-bottom: clamp(30px, 4vw, 44px); }
+.kx-exec .sec-oferta { margin-bottom: 18px; }
+.kx-exec .sec-programa { border-top: 0; padding-top: 0; margin-top: clamp(20px, 3vw, 30px); }

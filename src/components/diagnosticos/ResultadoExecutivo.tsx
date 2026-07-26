@@ -227,26 +227,23 @@ export function ResultadoExecutivo({ dados }: { dados: ResultadoExecutivoDados }
             ))}
           </div>
         </section>
-      </div>
-
-      <div className="oferta-topo">
-        <div className="wrap">
-          <div className="tag">A resposta da Korthex</div>
-          <h2>
-            O diagnóstico mostrou onde a condução trava.
-            <br />
-            Veja o trabalho que responde a isso.
-          </h2>
-          <p>
-            Toda organização cresce até o limite da maturidade de quem a conduz. O próximo ciclo
-            desta empresa exige uma nova versão de quem está no topo.
-          </p>
-        </div>
-      </div>
-
-      <div className="wrap">
+        {/* A faixa roxa é um card dentro da coluna, como na tela do líder —
+            não uma banda colada de ponta a ponta. */}
         <section>
-          <div className="sec-head">
+          <div className="oferta-topo">
+            <div className="tag">A resposta da Korthex</div>
+            <h2>
+              O diagnóstico mostrou onde a condução trava.
+              <br />
+              Veja o trabalho que responde a isso.
+            </h2>
+            <p>
+              Toda organização cresce até o limite da maturidade de quem a conduz. O próximo ciclo
+              desta empresa exige uma nova versão de quem está no topo.
+            </p>
+          </div>
+
+          <div className="sec-head sec-oferta">
             <div className="tag">Por onde começar</div>
             <h2>Os eixos que este diagnóstico prioriza</h2>
           </div>
@@ -264,7 +261,7 @@ export function ResultadoExecutivo({ dados }: { dados: ResultadoExecutivoDados }
           </div>
         </section>
 
-        <section>
+        <section className="sec-programa">
           <article className="treino t-caminho">
             <div className="t-head">
               <span className="t-idx t-idx-brand">★</span>
