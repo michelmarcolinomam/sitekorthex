@@ -83,14 +83,16 @@ export const PROGRAMAS: Record<string, Programa> = {
       "Discurso e prática andando juntos",
     ],
   },
+  // Autonomia responde ao mesmo programa de Emoções & Autorresponsabilidade.
+  // O nome é o do site, sem sufixo; o que muda é a leitura de negócio.
   autonomia: {
-    titulo: "Gestão das Emoções & Autorresponsabilidade · foco delegação",
+    titulo: "Gestão das Emoções & Autorresponsabilidade",
     corpo:
-      "O mesmo eixo de autorresponsabilidade, aplicado à delegação: assumir a responsabilidade de formar quem decide, em vez de reter a decisão.",
+      "Desenvolvimento da consciência emocional, da autorregulação e da capacidade de assumir responsabilidade sobre comportamentos, decisões e impactos produzidos na equipe.",
     impactos: [
-      "Delegação com clareza de alçada",
-      "Ownership distribuído no time",
-      "Formação de sucessores",
+      "Maior equilíbrio emocional",
+      "Redução de reatividade",
+      "Desenvolvimento da maturidade profissional",
       "Lideranças mais conscientes de seus impactos",
     ],
     destrava: [
@@ -105,5 +107,8 @@ export function programaDe(chave: ChaveDimensao): Programa {
   return PROGRAMAS[chave];
 }
 
-/** Autonomia e Estabilidade partem do mesmo eixo — vale ofertar junto. */
-export const MESMO_EIXO: ChaveDimensao[] = ["emocoes", "autonomia"];
+/**
+ * REGRA: o nome do treinamento é sempre o que está no site. Nada de prefixo,
+ * sufixo ou variação inventada. Duas dimensões podem cair no mesmo programa —
+ * nesse caso a oferta é uma só, citando as duas.
+ */

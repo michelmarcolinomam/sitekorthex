@@ -7,7 +7,7 @@
  */
 
 import { band, classificaLider, ROTULO_BAND, DIMENSOES, type ResultadoEmpresa } from "./motor-calculo";
-import { programaDe, MESMO_EIXO } from "./programas";
+import { programaDe } from "./programas";
 import type {
   Faixa,
   ItemCultura,
@@ -111,46 +111,53 @@ export function montaOverview(ctx: ContextoEmpresa, emp: ResultadoEmpresa): Over
     tom: "crit" as const,
   }));
 
-  /* ── oferta ── */
-  function ofertaDe(nome: string, valor: number, faixa: Faixa, prioritaria: boolean): OfertaGrupo {
-    const def = DIMENSOES.find((x) => x.nome === nome)!;
+  /* ── oferta ──
+     O nome do treinamento é o do site, sem prefixo. Quando duas dimensões caem
+     no mesmo programa, a oferta é uma só e cita as duas. */
+  type Alvo = { nome: string; valor: number; faixa: Faixa };
+
+  function ofertaDe(alvos: Alvo[], prioritaria: boolean): OfertaGrupo {
+    const principal = alvos[0];
+    const def = DIMENSOES.find((x) => x.nome === principal.nome)!;
     const p = programaDe(def.chave);
     const afetados = emp.padraoSistemico.find((x) => x.chave === def.chave);
+    const lista = alvos.map((a) => `${a.nome} (${a.valor})`).join(" e ");
+
     return {
       rotulo: prioritaria
-        ? `Frente prioritária · corrigir o que está frágil`
-        : `Responde a ${nome} · ${valor} · atenção`,
-      titulo: prioritaria ? `Treinamento em Grupo · ${p.titulo}` : p.titulo,
-      subtitulo: "Treinamento em grupo · Korthex Liderança",
+        ? "Frente prioritária · corrigir o que está frágil"
+        : `Responde a ${lista}`,
+      titulo: p.titulo,
+      subtitulo: "Korthex Liderança",
       descricao: p.corpo,
       desenvolve: p.impactos,
       destrava: p.destrava,
-      faixa,
+      faixa: principal.faixa,
       porque: prioritaria
-        ? `**Por que em grupo:** a fragilidade em ${nome} (${valor}) atravessa a liderança${afetados ? ` — ${afetados.lideresAfetados} de ${afetados.total} líderes` : ""}. É **cultura, não pessoa**. Um treinamento aplicado ao grupo cria linguagem comum e custa uma fração de ${emp.lideres.length} processos individuais.`
-        : `**Por que agora:** ${nome} está em ${valor}, ainda na faixa de atenção. Treinar agora custa uma fração do que custa recuperar depois de quebrada.`,
+        ? `**Por que em grupo:** a fragilidade em ${principal.nome} (${principal.valor}) atravessa a liderança${afetados && emp.lideres.length >= 3 ? ` — ${afetados.lideresAfetados} de ${afetados.total} líderes` : ""}. ${emp.lideres.length >= 3 ? "É **cultura, não pessoa**. Um treinamento aplicado ao grupo cria linguagem comum e custa uma fração de " + emp.lideres.length + " processos individuais." : "Corrigir aqui é o que destrava o resto."}`
+        : `**Por que agora:** ${lista} ${alvos.length > 1 ? "estão" : "está"} na faixa de atenção. Treinar agora custa uma fração do que custa recuperar depois de quebrada.`,
+      nota:
+        alvos.length > 1
+          ? `**Uma frente, duas dimensões:** ${alvos.map((a) => a.nome).join(" e ")} respondem ao mesmo programa — um treinamento cobre as duas.`
+          : undefined,
     };
   }
 
   const frageis = dimensoes.filter((d) => d.faixa === "lo");
   const atencao = dimensoes.filter((d) => d.faixa === "mid");
 
-  const ofertaPrioritaria = frageis.length
-    ? ofertaDe(frageis[0].nome, frageis[0].valor, frageis[0].faixa, true)
-    : null;
+  const ofertaPrioritaria = frageis.length ? ofertaDe([frageis[0]], true) : null;
 
+  // Agrupa o que sobrou por programa, para não repetir o mesmo card.
   const restantes = [...frageis.slice(1), ...atencao];
-  const ofertasPreventivas = restantes.map((d) => ofertaDe(d.nome, d.valor, d.faixa, false));
-
-  // Estabilidade e Autonomia partem do mesmo eixo — vale ofertar junto.
-  const chavesOfertadas = new Set(
-    restantes.map((d) => DIMENSOES.find((x) => x.nome === d.nome)!.chave),
-  );
-  if (MESMO_EIXO.every((c) => chavesOfertadas.has(c)) && ofertasPreventivas.length) {
-    const ultima = ofertasPreventivas[ofertasPreventivas.length - 1];
-    ultima.nota =
-      "**Vale combinar:** esta frente e a de Estabilidade Emocional partem do mesmo eixo — um único treinamento de Gestão das Emoções & Autorresponsabilidade, com os dois focos, cobre as duas zonas de atenção de uma vez.";
+  const porPrograma = new Map<string, Alvo[]>();
+  for (const d of restantes) {
+    const def = DIMENSOES.find((x) => x.nome === d.nome)!;
+    const titulo = programaDe(def.chave).titulo;
+    if (titulo === (ofertaPrioritaria?.titulo ?? "")) continue; // já ofertado acima
+    porPrograma.set(titulo, [...(porPrograma.get(titulo) ?? []), d]);
   }
+  const ofertasPreventivas = [...porPrograma.values()].map((alvos) => ofertaDe(alvos, false));
 
   /* ── frentes complementares: quem puxa para baixo e quem multiplica ── */
   const complementares: ItemCultura[] = [];
