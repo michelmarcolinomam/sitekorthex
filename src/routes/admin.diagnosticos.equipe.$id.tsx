@@ -42,6 +42,7 @@ function Interna() {
           empresa: dados.cliente.nome_empresa,
           periodo: `${MESES[agora.getMonth()]} ${agora.getFullYear()}`,
           tamanho: dados.avaliado.tamanho,
+      responsavel: dados.avaliado.responsavel?.nome ?? null,
         },
         dados.calculo,
         modo,

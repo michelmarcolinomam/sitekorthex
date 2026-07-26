@@ -166,7 +166,14 @@ function tomDe(s: Severidade): "crit" | "warn" | "good" {
 }
 
 export function montaResultadoEquipe(
-  ctx: { equipe: string; empresa: string; periodo: string; tamanho: number | null },
+  ctx: {
+    equipe: string;
+    empresa: string;
+    periodo: string;
+    tamanho: number | null;
+    /** Quem conduz a equipe, quando informado. */
+    responsavel?: string | null;
+  },
   calculo: ResultadoEquipeCalculado,
   modo: ModoEquipe,
 ): ResultadoEquipeDados | null {
@@ -237,7 +244,9 @@ export function montaResultadoEquipe(
   return {
     modo,
     equipe: ctx.equipe,
-    meta: `${ctx.empresa} · ${ctx.tamanho ? `${ctx.tamanho} pessoas · ` : ""}${modoNome} · ${ctx.periodo}`,
+    meta: `${ctx.empresa} · ${ctx.responsavel ? `conduzida por ${ctx.responsavel} · ` : ""}${
+      ctx.tamanho ? `${ctx.tamanho} pessoas · ` : ""
+    }${modoNome} · ${ctx.periodo}`,
     tamanho: ctx.tamanho,
     equipePequena: ctx.tamanho !== null && ctx.tamanho < 3,
     indiceLideranca: calculo.indiceLideranca,

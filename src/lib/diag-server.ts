@@ -81,6 +81,9 @@ export interface Lider {
   papel: PapelAvaliado;
   /** Número de pessoas — só existe quando o papel é equipe. */
   tamanho: number | null;
+  /** Quem conduz a equipe: o líder cadastrado (vínculo) ou um nome solto. */
+  responsavel_id: string | null;
+  responsavel_nome: string | null;
   created_at: string;
 }
 
@@ -286,6 +289,10 @@ export const publicCreateAvaliacoes = createServerFn({ method: "POST" })
       cargo?: string;
       /** Só para equipe: quantas pessoas. Quem informa é o RH, nunca quem responde. */
       tamanho?: number;
+      /** Quem conduz a equipe: o id de um líder já cadastrado… */
+      responsavel_id?: string | null;
+      /** …ou um nome livre, quando essa pessoa não está no sistema. */
+      responsavel_nome?: string | null;
       /** Uma entrada por ótica escolhida, com quantos vão responder aquela. */
       oticas: { tipo: AvaliacaoTipo; respondentes: number }[];
     }) => input,
@@ -318,6 +325,11 @@ export const publicCreateAvaliacoes = createServerFn({ method: "POST" })
     const tamanho =
       papel === "equipe" && data.tamanho ? Math.max(1, Math.min(500, Math.trunc(data.tamanho))) : null;
 
+    // O vínculo ganha do texto: havendo líder cadastrado, o nome vem dele.
+    const responsavelId = papel === "equipe" ? (data.responsavel_id || null) : null;
+    const responsavelNome =
+      papel === "equipe" && !responsavelId ? data.responsavel_nome?.trim().slice(0, 120) || null : null;
+
     // Reaproveita o avaliado de mesmo nome NO MESMO PAPEL — um líder e uma
     // equipe podem carregar o nome da mesma pessoa sem se misturarem.
     const { data: existente, error: eBusca } = await db
@@ -339,6 +351,8 @@ export const publicCreateAvaliacoes = createServerFn({ method: "POST" })
           cargo: data.cargo?.trim().slice(0, 120) || null,
           papel,
           tamanho,
+          responsavel_id: responsavelId,
+          responsavel_nome: responsavelNome,
         })
         .select("id")
         .single();
@@ -348,6 +362,13 @@ export const publicCreateAvaliacoes = createServerFn({ method: "POST" })
       const patch: Record<string, unknown> = {};
       if (data.cargo?.trim()) patch.cargo = data.cargo.trim().slice(0, 120);
       if (tamanho !== null) patch.tamanho = tamanho;
+      if (responsavelId) {
+        patch.responsavel_id = responsavelId;
+        patch.responsavel_nome = null;
+      } else if (responsavelNome) {
+        patch.responsavel_nome = responsavelNome;
+        patch.responsavel_id = null;
+      }
       if (Object.keys(patch).length) await db.from("lideres").update(patch).eq("id", avaliadoId);
     }
 
@@ -902,7 +923,14 @@ export const adminPanoramaEmpresa = createServerFn({ method: "GET" })
 /* ──────────────  RESULTADO do EXECUTIVO e da EQUIPE  ────────────── */
 
 export interface RecorteAvaliado<T> {
-  avaliado: { id: string; nome: string; cargo: string | null; tamanho: number | null };
+  avaliado: {
+    id: string;
+    nome: string;
+    cargo: string | null;
+    tamanho: number | null;
+    /** Quem conduz a equipe, com o aviso de que sem vínculo não há cruzamento. */
+    responsavel: { nome: string; vinculado: boolean } | null;
+  };
   cliente: { nome_empresa: string; chave: string };
   calculo: T;
 }
@@ -917,7 +945,9 @@ async function recorteDoAvaliado<T>(
 ): Promise<RecorteAvaliado<T> | null> {
   const { data: av, error } = await db
     .from("lideres")
-    .select("id, nome, cargo, papel, tamanho, cliente_id, clientes(nome_empresa, chave)")
+    .select(
+      "id, nome, cargo, papel, tamanho, responsavel_nome, cliente_id, clientes(nome_empresa, chave), responsavel:responsavel_id(nome)",
+    )
     .eq("id", avaliadoId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -929,12 +959,21 @@ async function recorteDoAvaliado<T>(
     | null;
   if (!cliente) return null;
 
+  const vinculado = (Array.isArray(av.responsavel) ? av.responsavel[0] : av.responsavel) as
+    | { nome: string }
+    | null;
+
   return {
     avaliado: {
       id: av.id as string,
       nome: av.nome as string,
       cargo: av.cargo as string | null,
       tamanho: av.tamanho as number | null,
+      responsavel: vinculado
+        ? { nome: vinculado.nome, vinculado: true }
+        : av.responsavel_nome
+          ? { nome: av.responsavel_nome as string, vinculado: false }
+          : null,
     },
     cliente,
     calculo: calcular(await respostasDoAvaliado(db, avaliadoId)),

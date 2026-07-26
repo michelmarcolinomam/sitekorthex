@@ -8,6 +8,7 @@ import {
   publicArchiveAvaliacao,
   type AvaliacaoTipo,
   type PapelAvaliado,
+  type Lider,
   type PainelCliente,
 } from "@/lib/diag-server";
 import { validaLead } from "@/lib/lead-validacao";
@@ -166,7 +167,7 @@ function Conteudo({ painel }: { painel: PainelCliente }) {
   return (
     <main className="mx-auto max-w-[980px] px-6 pb-24">
       <CabecalhoPainel painel={painel} />
-      <GerarAvaliacao chave={painel.chave} />
+      <GerarAvaliacao chave={painel.chave} lideres={painel.lideres} />
       <ListaLideres painel={painel} />
       <MapaTeaser painel={painel} />
     </main>
@@ -415,13 +416,16 @@ function Kpi({ valor, rotulo }: { valor: number; rotulo: string }) {
   );
 }
 
-function GerarAvaliacao({ chave }: { chave: string }) {
+function GerarAvaliacao({ chave, lideres }: { chave: string; lideres: Lider[] }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [papel, setPapel] = useState<PapelAvaliado>("lider");
   const [nome, setNome] = useState("");
   const [cargo, setCargo] = useState("");
   const [tamanho, setTamanho] = useState("");
+  // Quem conduz a equipe: o id de um líder cadastrado, "outro" (nome livre) ou nada.
+  const [responsavel, setResponsavel] = useState("");
+  const [responsavelLivre, setResponsavelLivre] = useState("");
   // Uma ótica marcada guarda também quantas pessoas vão responder ELA — o
   // número é diferente por ótica: seis liderados, dois sócios, um dono.
   const [marcadas, setMarcadas] = useState<Record<string, number>>({ lideranca_time: 6 });
@@ -430,11 +434,15 @@ function GerarAvaliacao({ chave }: { chave: string }) {
   const [aviso, setAviso] = useState<string | null>(null);
 
   const def = PAPEIS.find((p) => p.papel === papel)!;
+  // Só dá para vincular quem já está no sistema como liderança avaliada.
+  const lideresCadastrados = lideres.filter((l) => (l.papel ?? "lider") === "lider");
   const oticasDoPapel = TIPOS_POR_PAPEL[papel];
 
   function trocarPapel(novo: PapelAvaliado) {
     setPapel(novo);
     setTamanho("");
+    setResponsavel("");
+    setResponsavelLivre("");
     // Cada papel começa com a sua ótica principal já marcada.
     const primeira = TIPOS_POR_PAPEL[novo][0];
     setMarcadas({ [primeira]: OTICAS[primeira].padrao });
@@ -463,6 +471,9 @@ function GerarAvaliacao({ chave }: { chave: string }) {
           nome,
           cargo,
           tamanho: papel === "equipe" ? Number(tamanho) || undefined : undefined,
+          responsavel_id: papel === "equipe" && responsavel && responsavel !== "outro" ? responsavel : null,
+          responsavel_nome:
+            papel === "equipe" && responsavel === "outro" ? responsavelLivre : null,
           oticas: Object.entries(marcadas).map(([tipo, respondentes]) => ({
             tipo: tipo as AvaliacaoTipo,
             respondentes,
@@ -472,6 +483,8 @@ function GerarAvaliacao({ chave }: { chave: string }) {
       setNome("");
       setCargo("");
       setTamanho("");
+      setResponsavel("");
+      setResponsavelLivre("");
       if (r.criadas === 0) {
         setAviso("Já existe avaliação aberta nessas óticas — nada foi duplicado.");
       } else {
@@ -560,24 +573,71 @@ function GerarAvaliacao({ chave }: { chave: string }) {
             />
           </div>
         ) : null}
-        <div className="md:col-span-3">
-          <label className={ROTULO} htmlFor="av-cargo">
-            {def.rotuloCargo}
-          </label>
-          <input
-            id="av-cargo"
-            value={cargo}
-            onChange={(e) => setCargo(e.target.value)}
-            placeholder={def.exemploCargo}
-            className={CAMPO}
-          />
-        </div>
+        {papel === "equipe" ? (
+          <div className="md:col-span-3">
+            <label className={ROTULO} htmlFor="av-responsavel">
+              Líder responsável pela equipe
+            </label>
+            <select
+              id="av-responsavel"
+              value={responsavel}
+              onChange={(e) => setResponsavel(e.target.value)}
+              className={CAMPO}
+            >
+              <option value="">Não informar agora</option>
+              {lideresCadastrados.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.nome}
+                  {l.cargo ? ` · ${l.cargo}` : ""}
+                </option>
+              ))}
+              <option value="outro">Outra pessoa (digitar o nome)</option>
+            </select>
+          </div>
+        ) : (
+          <div className="md:col-span-3">
+            <label className={ROTULO} htmlFor="av-cargo">
+              {def.rotuloCargo}
+            </label>
+            <input
+              id="av-cargo"
+              value={cargo}
+              onChange={(e) => setCargo(e.target.value)}
+              placeholder={def.exemploCargo}
+              className={CAMPO}
+            />
+          </div>
+        )}
+
+        {papel === "equipe" && responsavel === "outro" ? (
+          <div className="md:col-span-3">
+            <label className={ROTULO} htmlFor="av-responsavel-nome">
+              Nome de quem conduz a equipe
+            </label>
+            <input
+              id="av-responsavel-nome"
+              value={responsavelLivre}
+              onChange={(e) => setResponsavelLivre(e.target.value)}
+              placeholder="Ex.: Marina Prado"
+              className={CAMPO}
+            />
+            <p className="mt-2 text-xs leading-relaxed text-amber-700">
+              Esta pessoa não está cadastrada como liderança avaliada. O diagnóstico da equipe
+              funciona normalmente, mas não será possível cruzar o resultado dela com o recorte
+              individual de quem a conduz — que é a leitura que mostra o que desce do líder para o
+              time.
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {papel === "equipe" ? (
         <p className="mt-3 text-xs leading-relaxed text-foreground/50">
           O diagnóstico da equipe lê o time como conjunto — não gera nota por pessoa. Com menos de
           três pessoas, o relatório avisa que ali o retrato é de indivíduo.
+          {lideresCadastrados.length === 0
+            ? " Nenhuma liderança avaliada ainda: cadastre o líder primeiro se quiser cruzar as duas leituras depois."
+            : ""}
         </p>
       ) : null}
 
