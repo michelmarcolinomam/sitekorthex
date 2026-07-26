@@ -1,0 +1,72 @@
+/*
+ * Recorte da EQUIPE — só as diferenças.
+ *
+ * O visual base é o da tela do líder (resultado-lider.css, escopo
+ * .kx-resultado), que esta tela carrega junto. Aqui moram: as cores das duas
+ * óticas desta camada, a linha da âncora, o aviso de equipe pequena e o
+ * seletor de recorte.
+ *
+ * As óticas aqui são OUTRAS: quem conduz (gestão) e quem cobra (resultado).
+ * Reaproveitar o teal/roxo do time × executivo confundiria as duas leituras.
+ */
+
+.kx-equipe {
+  --gestao: #1F6FEB;
+  --gestao-soft: #E8F0FE;
+  --resultado: #8A2BE2;
+  --resultado-soft: #F1E8FF;
+}
+@media (prefers-color-scheme: dark) {
+  .kx-equipe { --gestao: #6BA3F5; --gestao-soft: #17233A; --resultado: #A96BEE; --resultado-soft: #2A2038; }
+}
+
+.kx-equipe .otica-gestao i { background: var(--gestao); }
+.kx-equipe .otica-resultado i { background: var(--resultado); }
+.kx-equipe .btag { min-width: 74px; }
+.kx-equipe .btag-gestao { color: var(--gestao); }
+.kx-equipe .btag-resultado { color: var(--resultado); }
+.kx-equipe .fill-gestao { background: var(--gestao); }
+.kx-equipe .fill-resultado { background: var(--resultado); }
+.kx-equipe .kpi-gestao .v { color: var(--gestao); }
+.kx-equipe .kpi-resultado .v { color: var(--resultado); }
+
+/* Seletor dos três recortes — o mesmo diagnóstico visto de três lugares. */
+.kx-equipe .recortes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.kx-equipe .recortes a {
+  border: 1px solid var(--line-strong); background: var(--card); color: var(--ink-soft);
+  border-radius: 999px; padding: 9px 16px; text-decoration: none;
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600;
+}
+.kx-equipe .recortes a:hover { border-color: var(--brand); color: var(--brand); }
+.kx-equipe .recortes a[aria-current="page"] { background: var(--brand); border-color: var(--brand); color: #fff; }
+
+/* A âncora: a frase idêntica nos dois questionários. É ela que sustenta o gap. */
+.kx-equipe .ancora {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 12px; padding: 10px 14px; border-radius: 10px;
+  background: var(--surface); font-size: .82rem; color: var(--muted);
+}
+.kx-equipe .ancora .rot {
+  font-size: 9px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700;
+  color: var(--brand-deep); background: var(--brand-soft); padding: 4px 9px; border-radius: 999px;
+}
+.kx-equipe .ancora b { color: var(--ink); font-weight: 650; }
+
+/* Aviso de equipe pequena: o retrato deixa de ser de conjunto. */
+.kx-equipe .aviso-pequena {
+  border: 1px solid var(--warn); background: var(--warn-soft); color: var(--ink);
+  border-radius: var(--radius); padding: 20px 24px; margin-top: 24px;
+  font-size: .92rem; line-height: 1.6;
+}
+.kx-equipe .aviso-pequena b { font-weight: 650; }
+
+/* Nada aqui é individualizado — a nota de método reforça, e aparece com peso. */
+.kx-equipe .nota-conjunto {
+  margin-top: 18px; padding: 14px 18px; border-radius: 10px;
+  border: 1px dashed var(--line-strong); font-size: .84rem; line-height: 1.6; color: var(--muted);
+}
+.kx-equipe .nota-conjunto b { color: var(--ink-soft); font-weight: 620; }
+
+.kx-equipe .oferta-topo { margin-bottom: clamp(30px, 4vw, 44px); }
+.kx-equipe .sec-oferta { margin-bottom: 18px; }
+.kx-equipe .duo { align-items: start; }

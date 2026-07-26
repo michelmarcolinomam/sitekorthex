@@ -352,6 +352,158 @@ export function calculaExecutivo(respostas: RespostaBruta[]): ResultadoExecutivo
   };
 }
 
+/* ─────────────────────────  A EQUIPE — duas exigências  ─────────────────────
+
+   A camada do time é lida por dois lados, como a da liderança: quem CONDUZ a
+   equipe (gestão) e quem COBRA o resultado (entrega). As perguntas são
+   diferentes de propósito — a exigência de cada lado é diferente —, mas as
+   seis dimensões e o peso de cada uma são os mesmos, e em cada dimensão existe
+   um item ÂNCORA com a frase idêntica nos dois questionários. É a âncora que
+   permite dizer "na mesma frase, um marcou 3 e o outro marcou 1" sem que a
+   diferença possa ser atribuída à dureza das perguntas.
+
+   Aqui nada é individualizado: a unidade é a equipe. */
+
+export const DIMENSOES_EQUIPE = [
+  { chave: "emocoes", nome: "Gestão das Emoções & Autopercepção", curto: "Emoções" },
+  { chave: "comunicacao", nome: "Comunicação & Relacionamentos Produtivos", curto: "Comunicação" },
+  { chave: "autorresp", nome: "Autorresponsabilidade & Protagonismo", curto: "Autorresponsabilidade" },
+  { chave: "identidade", nome: "Identidade Profissional & Posicionamento", curto: "Identidade" },
+  { chave: "colaboracao", nome: "Colaboração & Trabalho em Equipe", curto: "Colaboração" },
+  { chave: "projeto", nome: "Projeto de Vida & Produtividade", curto: "Projeto de Vida" },
+] as const;
+
+export type ChaveEquipe = (typeof DIMENSOES_EQUIPE)[number]["chave"];
+
+/** Abaixo disso o "retrato da equipe" é o retrato de uma pessoa. Não bloqueia — avisa. */
+export const EQUIPE_PEQUENA = 3;
+
+export interface DimensaoEquipe {
+  chave: ChaveEquipe;
+  nome: string;
+  curto: string;
+  /** Como quem conduz a equipe enxerga. */
+  lideranca: number | null;
+  /** Como quem cobra o resultado enxerga. */
+  executivo: number | null;
+  /** Positivo = o topo enxerga melhor do que a gestão. */
+  gap: number | null;
+  nivel: number | null;
+  faixa: "hi" | "mid" | "lo" | null;
+  severidade: Severidade | null;
+  rotulo: string | null;
+  /** A frase idêntica nos dois questionários — comparação direta. */
+  ancora: { lideranca: number | null; executivo: number | null; gap: number | null };
+}
+
+export interface ResultadoEquipeCalculado {
+  dimensoes: DimensaoEquipe[];
+  indiceLideranca: number | null;
+  indiceExecutivo: number | null;
+  /** Média dos gaps com sinal: positivo = o topo enxerga melhor que a gestão. */
+  divergencia: number | null;
+  /** O mesmo, medido só pelas âncoras — a comparação à prova de item. */
+  divergenciaAncoras: number | null;
+  respondeuLideranca: boolean;
+  respondeuExecutivo: boolean;
+}
+
+/**
+ * O desacordo sobre a EQUIPE tem direção, e cada direção conta uma história
+ * diferente — por isso não reaproveita o rótulo neutro da tela do líder.
+ */
+export function severidadeGapEquipe(
+  lideranca: number,
+  executivo: number,
+): { severidade: Severidade; rotulo: string; gap: number } {
+  const gap = executivo - lideranca;
+  const tamanho = Math.abs(gap);
+  if (tamanho < 10) return { severidade: "good", rotulo: "leituras alinhadas", gap };
+  const severidade: Severidade = tamanho >= 20 ? "crit" : "warn";
+  return {
+    severidade,
+    // Curto porque vira pill; a frase inteira fica na leitura da dimensão.
+    rotulo: gap < 0 ? "o topo cobra mais" : "custo que o topo não vê",
+    gap,
+  };
+}
+
+/** Calcula a equipe a partir das respostas das duas óticas (ou de uma só). */
+export function calculaEquipe(respostas: RespostaBruta[]): ResultadoEquipeCalculado {
+  const notas = (tipo: AvaliacaoTipo, so_ancora: boolean) => {
+    const mapa = new Map<string, number[]>();
+    for (const r of respostas) {
+      if (r.tipo !== tipo) continue;
+      for (const item of r.itens) {
+        if (typeof item.score !== "number" || Number.isNaN(item.score)) continue;
+        if (so_ancora !== (item.facet === "ancora")) continue;
+        mapa.set(item.theme, [...(mapa.get(item.theme) ?? []), item.score]);
+      }
+    }
+    return mapa;
+  };
+
+  const lid = notas("performance_lideranca", false);
+  const exe = notas("performance_executivo", false);
+  const lidAncora = notas("performance_lideranca", true);
+  const exeAncora = notas("performance_executivo", true);
+
+  const dimensoes: DimensaoEquipe[] = DIMENSOES_EQUIPE.map((d) => {
+    const vLid = paraIndice(lid.get(d.chave) ?? []);
+    const vExe = paraIndice(exe.get(d.chave) ?? []);
+    const aLid = paraIndice(lidAncora.get(d.chave) ?? []);
+    const aExe = paraIndice(exeAncora.get(d.chave) ?? []);
+
+    const presentes = [vLid, vExe].filter((v): v is number => v !== null);
+    const nivel = presentes.length ? media(presentes) : null;
+    const faixa = nivel === null ? null : band(nivel);
+    const ancora = {
+      lideranca: aLid,
+      executivo: aExe,
+      gap: aLid !== null && aExe !== null ? aExe - aLid : null,
+    };
+
+    if (vLid === null || vExe === null || faixa === null) {
+      return {
+        chave: d.chave, nome: d.nome, curto: d.curto,
+        lideranca: vLid, executivo: vExe, gap: null, nivel, faixa,
+        severidade: faixa ? SEV_POR_FAIXA[faixa] : null,
+        rotulo: faixa ? ROTULO_BAND[faixa] : null,
+        ancora,
+      };
+    }
+
+    const g = severidadeGapEquipe(vLid, vExe);
+    const sevNivel = SEV_POR_FAIXA[faixa];
+    // A pior das duas manda — igual às outras telas: as duas óticas concordarem
+    // que a equipe está mal não transforma consenso em força.
+    const pior = PESO_SEV[sevNivel] <= PESO_SEV[g.severidade] ? sevNivel : g.severidade;
+
+    return {
+      chave: d.chave, nome: d.nome, curto: d.curto,
+      lideranca: vLid, executivo: vExe, gap: g.gap, nivel, faixa,
+      severidade: pior,
+      rotulo: pior === g.severidade && g.severidade !== "good" ? g.rotulo : ROTULO_BAND[faixa],
+      ancora,
+    };
+  });
+
+  const dosLid = dimensoes.map((d) => d.lideranca).filter((v): v is number => v !== null);
+  const dosExe = dimensoes.map((d) => d.executivo).filter((v): v is number => v !== null);
+  const gaps = dimensoes.map((d) => d.gap).filter((v): v is number => v !== null);
+  const gapsAncora = dimensoes.map((d) => d.ancora.gap).filter((v): v is number => v !== null);
+
+  return {
+    dimensoes,
+    indiceLideranca: dosLid.length ? media(dosLid) : null,
+    indiceExecutivo: dosExe.length ? media(dosExe) : null,
+    divergencia: gaps.length ? media(gaps) : null,
+    divergenciaAncoras: gapsAncora.length ? media(gapsAncora) : null,
+    respondeuLideranca: respostas.some((r) => r.tipo === "performance_lideranca"),
+    respondeuExecutivo: respostas.some((r) => r.tipo === "performance_executivo"),
+  };
+}
+
 /* ─────────────────────────  Nível 2 — a empresa  ───────────────────────── */
 
 export interface LiderNaEmpresa {

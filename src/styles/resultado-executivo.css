@@ -89,26 +89,6 @@
   .kx-trava .n { background: #2A2038; color: #C9A2F7; }
 }
 
-/* Síntese de forças e vulnerabilidades.
-   Antes o nome do eixo e a leitura disputavam a mesma linha dentro de uma
-   coluna estreita e quebravam feio. Agora é linha de painel: nome à esquerda,
-   nota à direita, leitura embaixo — e nada precisa caber num espaço só. */
-.kx-exec .sintese { display: grid; gap: 0; margin-top: 4px; }
-.kx-exec .sit { display: grid; gap: 6px; padding: 14px 0; border-bottom: 1px solid var(--line); }
-.kx-exec .sit:last-child { border-bottom: 0; padding-bottom: 0; }
-.kx-exec .sit-top { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
-.kx-exec .sit-nome { font-size: .95rem; font-weight: 620; color: var(--ink); line-height: 1.35; }
-.kx-exec .sit-valor { flex: none; font-size: 1.15rem; font-weight: 650; letter-spacing: -.02em; }
-.kx-exec .sit-valor.v-crit { color: var(--crit); }
-.kx-exec .sit-valor.v-warn { color: var(--warn); }
-.kx-exec .sit-valor.v-good { color: var(--good); }
-.kx-exec .sit-sub { display: flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--muted); line-height: 1.45; }
-.kx-exec .ponto { flex: none; width: 7px; height: 7px; border-radius: 50%; }
-.kx-exec .p-crit { background: var(--crit); }
-.kx-exec .p-warn { background: var(--warn); }
-.kx-exec .p-good { background: var(--good); }
-.kx-exec .sem-forca { margin-top: 10px; font-size: .9rem; line-height: 1.6; color: var(--muted); }
-
 /* Os dois cards da síntese têm alturas naturais diferentes — sem isto, o lado
    com menos conteúdo estica e vira uma caixa vazia grande. */
 .kx-exec .duo { align-items: start; }
