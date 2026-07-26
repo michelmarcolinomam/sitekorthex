@@ -26,6 +26,15 @@ export interface EixoNaTela {
   impactos: ItemLista[];
 }
 
+/** Uma linha da síntese: o eixo, a nota e o custo em poucas palavras. */
+export interface ItemSintese {
+  nome: string;
+  valor: number;
+  severidade: Severidade;
+  rotulo: string;
+  custo: string;
+}
+
 export interface ResultadoExecutivoDados {
   executivo: string;
   meta: string;
@@ -35,8 +44,8 @@ export interface ResultadoExecutivoDados {
   divergenciaInterna: number | null;
   insight: string;
   eixos: EixoNaTela[];
-  forcas: ItemLista[];
-  vulnerabilidades: ItemLista[];
+  forcas: ItemSintese[];
+  vulnerabilidades: ItemSintese[];
   prioridades: { eixo: string; pergunta: string; porque: string }[];
   programa: {
     titulo: string;
@@ -221,27 +230,18 @@ export function montaResultadoExecutivo(
       ? `**${pior.nome} (${pior.valor})** é o ponto mais frágil da condução — mas o dado que mais pesa é outro: os líderes divergem em média **${calculo.divergenciaInterna} pontos** entre si sobre a mesma pessoa. Quando a leitura muda tanto conforme quem responde, o problema não é só de competência: é de **consistência**.`
       : `**${pior.nome} (${pior.valor})** é onde a condução mais custa à operação hoje, e **${melhor.nome} (${melhor.valor})** é o que já sustenta. A liderança é consistente na leitura — ${n} pessoas descrevendo a mesma pessoa do mesmo jeito, o que dá peso ao retrato.`;
 
-  const forcas: ItemLista[] = eixos
-    .filter((e) => e.severidade === "good")
-    .slice(-2)
-    .map((e) => ({
-      destaque: `${e.nome} (${e.valor})`,
-      texto: "— reconhecido pela liderança como base sólida. É por onde as mudanças difíceis passam com menos atrito.",
-      tom: "good" as const,
-    }));
+  // A síntese é dado, não frase montada: a tela desenha nome, nota e custo em
+  // colunas próprias, então nada precisa caber numa linha só.
+  const linha = (e: EixoNaTela): ItemSintese => ({
+    nome: e.nome,
+    valor: e.valor,
+    severidade: e.severidade,
+    rotulo: e.dividido ? `${e.amplitude} pontos de desacordo` : e.rotulo,
+    custo: e.impactos[0].destaque.toLowerCase(),
+  });
 
-  const vulnerabilidades: ItemLista[] = eixos
-    .filter((e) => e.severidade !== "good")
-    .slice(0, 3)
-    .map((e) => ({
-      destaque: `${e.nome} (${e.valor})`,
-      // Cada linha fecha com o custo próprio daquele eixo — repetir a mesma
-      // frase três vezes faz o leitor parar de ler na segunda.
-      texto: e.dividido
-        ? `— ${e.amplitude} pontos de distância entre o líder que melhor e o que pior avalia · ${e.impactos[0].destaque.toLowerCase()}`
-        : `— ${e.rotulo} · ${e.impactos[0].destaque.toLowerCase()}`,
-      tom: "crit" as const,
-    }));
+  const forcas = eixos.filter((e) => e.severidade === "good").slice(-2).map(linha);
+  const vulnerabilidades = eixos.filter((e) => e.severidade !== "good").slice(0, 3).map(linha);
 
   const prioridades = eixos
     .filter((e) => e.severidade !== "good")

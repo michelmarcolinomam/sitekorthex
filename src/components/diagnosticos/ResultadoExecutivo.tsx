@@ -1,4 +1,4 @@
-import type { ResultadoExecutivoDados } from "@/lib/executivo-textos";
+import type { ResultadoExecutivoDados, ItemSintese } from "@/lib/executivo-textos";
 import type { ItemLista } from "./ResultadoLider";
 
 /**
@@ -28,6 +28,26 @@ function Lista({ itens }: { itens: ItemLista[] }) {
       {itens.map((it, i) => (
         <div className="item" key={i}>
           <b>{it.destaque}</b> {it.texto}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A síntese em linha de painel: eixo à esquerda, nota à direita, leitura embaixo. */
+function Sintese({ itens }: { itens: ItemSintese[] }) {
+  return (
+    <div className="sintese">
+      {itens.map((i) => (
+        <div className="sit" key={i.nome}>
+          <div className="sit-top">
+            <span className="sit-nome">{i.nome}</span>
+            <span className={`sit-valor num v-${i.severidade}`}>{i.valor}</span>
+          </div>
+          <div className="sit-sub">
+            <span className={`ponto p-${i.severidade}`} />
+            {i.rotulo} · {i.custo}
+          </div>
         </div>
       ))}
     </div>
@@ -157,14 +177,12 @@ export function ResultadoExecutivo({ dados }: { dados: ResultadoExecutivoDados }
               </div>
               <h3>O que já sustenta</h3>
               {dados.forcas.length ? (
-                <Lista itens={dados.forcas} />
+                <Sintese itens={dados.forcas} />
               ) : (
-                <div className="lista">
-                  <div className="item">
-                    Nenhum eixo chegou à faixa forte nesta leitura — o que significa que o trabalho
-                    começa pela base, não pelo ajuste fino.
-                  </div>
-                </div>
+                <p className="sem-forca">
+                  Nenhum eixo chegou à faixa forte nesta leitura — o trabalho começa pela base, não
+                  pelo ajuste fino.
+                </p>
               )}
             </div>
             <div className="bloco">
@@ -172,7 +190,7 @@ export function ResultadoExecutivo({ dados }: { dados: ResultadoExecutivoDados }
                 Vulnerabilidades a desenvolver
               </div>
               <h3>O que precisa de resposta</h3>
-              <Lista itens={dados.vulnerabilidades} />
+              <Sintese itens={dados.vulnerabilidades} />
             </div>
           </div>
         </section>
