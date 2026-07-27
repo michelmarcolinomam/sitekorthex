@@ -19,7 +19,18 @@ const SECOES: { chave: SecaoAdmin; rotulo: string; href: string }[] = [
   { chave: "blog", rotulo: "Blog", href: "/admin" },
 ];
 
-export function AdminNav({ ativa }: { ativa: SecaoAdmin }) {
+/**
+ * `solicitacoes` é a fila de quem pediu o diagnóstico pelo site e ainda não
+ * recebeu a chave. Vira um contador em Clientes & chaves — sem isso a
+ * solicitação fica esperando alguém lembrar de abrir a tela.
+ */
+export function AdminNav({
+  ativa,
+  solicitacoes = 0,
+}: {
+  ativa: SecaoAdmin;
+  solicitacoes?: number;
+}) {
   return (
     <div className="topbar">
       <div className="wrap">
@@ -31,6 +42,14 @@ export function AdminNav({ ativa }: { ativa: SecaoAdmin }) {
           {SECOES.map((s) => (
             <a key={s.chave} href={s.href} aria-current={s.chave === ativa ? "page" : undefined}>
               {s.rotulo}
+              {s.chave === "clientes" && solicitacoes > 0 ? (
+                <span
+                  className="contador"
+                  title={`${solicitacoes} solicitação(ões) do site aguardando liberação`}
+                >
+                  {solicitacoes}
+                </span>
+              ) : null}
             </a>
           ))}
         </nav>

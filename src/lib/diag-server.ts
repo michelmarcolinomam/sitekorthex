@@ -9,7 +9,13 @@ import {
   montaPanorama,
   type PanoramaEmpresa,
 } from "./diag-panorama";
-import { validaLead, dominioRecebeEmail, type ResultadoValidacao } from "./lead-validacao";
+import {
+  validaLead,
+  validaSolicitacao,
+  dominioRecebeEmail,
+  type ResultadoValidacao,
+  type ResultadoSolicitacao,
+} from "./lead-validacao";
 import { programaDe } from "./programas";
 import {
   calculaLider,
@@ -53,6 +59,11 @@ export interface Cliente {
   observacoes: string | null;
   criado_por: string | null;
   lead_preenchido_em: string | null;
+  /** De onde a empresa veio: cadastrada pela Korthex ou solicitada pelo site. */
+  origem: "korthex" | "site";
+  /** Quando a Korthex entregou a chave. Nulo = solicitação pendente. */
+  liberado_em: string | null;
+  tamanho_empresa: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -273,6 +284,144 @@ export const publicSalvarLead = createServerFn({ method: "POST" })
       .eq("id", cliente.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export type SolicitacaoResposta =
+  | { ok: true; empresa: string; email: string; telefone: string }
+  | { ok: false; erros: ResultadoSolicitacao["erros"] };
+
+/**
+ * Chave pública do Web3Forms — a mesma do formulário de contato. É pública por
+ * natureza (vive no bundle do navegador em ContactForm); só serve para entregar
+ * o aviso por e-mail.
+ */
+const WEB3FORMS_ACCESS_KEY = "af71bff1-67bb-4d4d-bbc0-2449dcf1516f";
+
+/** Avisa a Korthex por e-mail. Nunca derruba a solicitação se o envio falhar. */
+async function avisaSolicitacao(corpo: Record<string, string>): Promise<void> {
+  try {
+    await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        access_key: WEB3FORMS_ACCESS_KEY,
+        subject: `Diagnóstico solicitado — ${corpo.empresa}`,
+        from_name: "Site Korthex",
+        ...corpo,
+      }),
+    });
+  } catch {
+    // O registro no banco é a fonte da verdade; o e-mail é só o alerta.
+  }
+}
+
+/**
+ * Uma empresa pede o diagnóstico por korthex.com.br/diagnostico.
+ *
+ * A ficha nasce com a chave JÁ GERADA pelo banco mas NÃO ENTREGUE
+ * (`liberado_em` nulo) — quem tem a chave entra, então entregar é o ato de
+ * liberação da Korthex. Por isso esta função **nunca devolve a chave**: se
+ * devolvesse, bastaria adivinhar o nome de uma empresa para entrar no
+ * diagnóstico dela.
+ *
+ * A resposta é idêntica para pedido novo e para empresa que já é cliente, de
+ * propósito: variar a mensagem contaria a quem está do outro lado quem já é
+ * cliente da Korthex. Quem fica sabendo da diferença é o e-mail de aviso.
+ */
+export const publicSolicitarDiagnostico = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      empresa: string;
+      nome: string;
+      cargo: string;
+      email: string;
+      telefone: string;
+      tamanho: string;
+    }) => input,
+  )
+  .handler(async ({ data }): Promise<SolicitacaoResposta> => {
+    // A régua vale no servidor: a tela pode ser contornada, isto não.
+    const v = validaSolicitacao(data);
+    if (!v.ok) return { ok: false, erros: v.erros };
+
+    if (!(await dominioRecebeEmail(v.dominioEmail))) {
+      return {
+        ok: false,
+        erros: { email: "Esse domínio de e-mail não recebe mensagens. Confira o endereço." },
+      };
+    }
+
+    const db = sb();
+    const { empresa, nome, cargo, email, telefone, tamanho } = v.limpo;
+
+    const contato = {
+      responsavel_nome: nome.slice(0, 120),
+      responsavel_cargo: cargo.slice(0, 120),
+      responsavel_email: email.slice(0, 160),
+      responsavel_telefone: telefone.slice(0, 40),
+      tamanho_empresa: tamanho,
+      lead_preenchido_em: new Date().toISOString(),
+    };
+
+    // Dedup em duas passadas em vez de um .or(): o valor vai como parâmetro,
+    // não concatenado na sintaxe de filtro do PostgREST. Sem curinga, ilike é
+    // igualdade sem diferenciar maiúscula.
+    const colunas = "id, nome_empresa, liberado_em";
+    const busca = (coluna: "responsavel_email" | "nome_empresa", valor: string) =>
+      db
+        .from("clientes")
+        .select(colunas)
+        .ilike(coluna, valor)
+        .neq("status", "arquivado")
+        .limit(1)
+        .maybeSingle();
+
+    const { data: porEmail } = await busca("responsavel_email", email);
+    const { data: porEmpresa } = porEmail ? { data: null } : await busca("nome_empresa", empresa);
+    const existente = porEmail ?? porEmpresa;
+
+    if (existente) {
+      // Atualiza o contato, mas NÃO mexe em liberado_em: reenviar formulário
+      // não pode virar (nem desfazer) uma liberação.
+      const { error } = await db.from("clientes").update(contato).eq("id", existente.id);
+      if (error) throw new Error(error.message);
+
+      await avisaSolicitacao({
+        empresa,
+        nome,
+        cargo,
+        email,
+        telefone,
+        tamanho,
+        situacao: existente.liberado_em
+          ? `JÁ É CLIENTE com a chave entregue (ficha "${existente.nome_empresa}"). Os dados de contato foram atualizados e NÃO entrou na fila de solicitações — trate direto.`
+          : `Ficha "${existente.nome_empresa}" já estava na fila aguardando liberação. Dados atualizados.`,
+      });
+
+      return { ok: true, empresa, email, telefone };
+    }
+
+    const { error } = await db.from("clientes").insert({
+      nome_empresa: empresa.slice(0, 160),
+      status: "lead",
+      origem: "site",
+      liberado_em: null,
+      criado_por: "site",
+      ...contato,
+    });
+    if (error) throw new Error(error.message);
+
+    await avisaSolicitacao({
+      empresa,
+      nome,
+      cargo,
+      email,
+      telefone,
+      tamanho,
+      situacao: "Solicitação NOVA aguardando liberação em /admin/diagnosticos/clientes.",
+    });
+
+    return { ok: true, empresa, email, telefone };
   });
 
 /**
@@ -524,10 +673,38 @@ export const adminCreateCliente = createServerFn({ method: "POST" })
     if (!nome) throw new Error("Informe o nome da empresa.");
     const { data: row, error } = await sb()
       .from("clientes")
-      .insert({ nome_empresa: nome, criado_por: data.criado_por ?? null })
+      .insert({
+        nome_empresa: nome,
+        criado_por: data.criado_por ?? null,
+        // Cadastrada aqui dentro: a Korthex já sai daqui para entregar a chave,
+        // então não é uma solicitação pendente.
+        origem: "korthex",
+        liberado_em: new Date().toISOString(),
+      })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+    return row as Cliente;
+  });
+
+/**
+ * Entrega a chave: marca a solicitação como liberada. O envio em si é humano
+ * (WhatsApp ou e-mail) — o sistema só registra que saiu, e é isso que tira a
+ * empresa da fila.
+ */
+export const adminLiberarSolicitacao = createServerFn({ method: "POST" })
+  .inputValidator((id: string) => id)
+  .handler(async ({ data: id }): Promise<Cliente> => {
+    await requireAdmin();
+    const { data: row, error } = await sb()
+      .from("clientes")
+      .update({ liberado_em: new Date().toISOString() })
+      .eq("id", id)
+      .is("liberado_em", null)
+      .select("*")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Essa solicitação já havia sido liberada.");
     return row as Cliente;
   });
 

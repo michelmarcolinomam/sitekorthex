@@ -174,6 +174,93 @@ export function validaLead(entrada: {
   };
 }
 
+/** Máscara de telefone conforme digita: (11) 99999-9999 */
+export function mascaraTelefone(v: string): string {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+/**
+ * Faixas de tamanho da empresa. Qualificam a conversa comercial antes dela
+ * começar — e o valor é escolhido de uma lista fechada, então o servidor só
+ * precisa conferir se pertence a ela.
+ */
+export const TAMANHOS_EMPRESA = [
+  "Até 10 funcionários",
+  "11 a 50 funcionários",
+  "51 a 200 funcionários",
+  "201 a 500 funcionários",
+  "Mais de 500 funcionários",
+] as const;
+
+export type TamanhoEmpresa = (typeof TAMANHOS_EMPRESA)[number];
+
+/**
+ * Nome de empresa aceita número e "&" ("DB1 Group", "L&L Assessoria"), então a
+ * régua do nome de pessoa não serve aqui. O que se barra é o migué.
+ */
+function validaEmpresa(bruto: string): { erro?: string; limpo: string } {
+  const v = bruto.trim().replace(/\s+/g, " ");
+  if (!v) return { erro: "Informe o nome da empresa.", limpo: "" };
+  if (v.replace(/[^\p{L}]/gu, "").length < 2)
+    return { erro: "Informe o nome da empresa.", limpo: v };
+  if (!/^[\p{L}\p{N}][\p{L}\p{N}\s.,&/'+-]*$/u.test(v))
+    return { erro: "Use apenas letras, números e pontuação simples.", limpo: v };
+  if (MIGUE.has(v.toLowerCase())) return { erro: "Informe o nome real da empresa.", limpo: v };
+  // "aaaa": um caractere só repetido não é nome de empresa.
+  if (new Set(v.toLowerCase().replace(/\s/g, "")).size === 1)
+    return { erro: "Informe o nome real da empresa.", limpo: v };
+  return { limpo: v };
+}
+
+export interface ResultadoSolicitacao {
+  ok: boolean;
+  erros: Partial<Record<"empresa" | "nome" | "cargo" | "email" | "telefone" | "tamanho", string>>;
+  limpo: {
+    empresa: string;
+    nome: string;
+    cargo: string;
+    email: string;
+    telefone: string;
+    tamanho: string;
+  };
+  dominioEmail: string;
+}
+
+/**
+ * A solicitação do diagnóstico pelo site: o cadastro do responsável mais a
+ * empresa e o tamanho dela. Mesma régua do lead, dois campos a mais.
+ */
+export function validaSolicitacao(entrada: {
+  empresa?: string;
+  nome?: string;
+  cargo?: string;
+  email?: string;
+  telefone?: string;
+  tamanho?: string;
+}): ResultadoSolicitacao {
+  const base = validaLead(entrada);
+  const empresa = validaEmpresa(entrada.empresa ?? "");
+
+  const erros: ResultadoSolicitacao["erros"] = { ...base.erros };
+  if (empresa.erro) erros.empresa = empresa.erro;
+
+  const tamanho = (entrada.tamanho ?? "").trim();
+  if (!tamanho) erros.tamanho = "Escolha o tamanho da empresa.";
+  else if (!(TAMANHOS_EMPRESA as readonly string[]).includes(tamanho))
+    erros.tamanho = "Escolha uma das faixas da lista.";
+
+  return {
+    ok: Object.keys(erros).length === 0,
+    erros,
+    limpo: { empresa: empresa.limpo, ...base.limpo, tamanho },
+    dominioEmail: base.dominioEmail,
+  };
+}
+
 /**
  * Confere no DNS se o domínio do e-mail aceita mensagem — pega tanto o erro
  * de digitação ("gmial.com") quanto o domínio que não recebe e-mail nenhum.

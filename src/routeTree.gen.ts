@@ -14,6 +14,7 @@ import { Route as MetodoRouteImport } from './routes/metodo'
 import { Route as ManifestoRouteImport } from './routes/manifesto'
 import { Route as LiderancaRouteImport } from './routes/lideranca'
 import { Route as KorthexExecutivoRouteImport } from './routes/korthex-executivo'
+import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -62,6 +63,11 @@ const LiderancaRoute = LiderancaRouteImport.update({
 const KorthexExecutivoRoute = KorthexExecutivoRouteImport.update({
   id: '/korthex-executivo',
   path: '/korthex-executivo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiagnosticoRoute = DiagnosticoRouteImport.update({
+  id: '/diagnostico',
+  path: '/diagnostico',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -199,6 +205,7 @@ const AdminDiagnosticosEmpresaIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/diagnostico': typeof DiagnosticoRoute
   '/korthex-executivo': typeof KorthexExecutivoRoute
   '/lideranca': typeof LiderancaRoute
   '/manifesto': typeof ManifestoRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/diagnostico': typeof DiagnosticoRoute
   '/korthex-executivo': typeof KorthexExecutivoRoute
   '/lideranca': typeof LiderancaRoute
   '/manifesto': typeof ManifestoRoute
@@ -262,6 +270,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/diagnostico': typeof DiagnosticoRoute
   '/korthex-executivo': typeof KorthexExecutivoRoute
   '/lideranca': typeof LiderancaRoute
   '/manifesto': typeof ManifestoRoute
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/diagnostico'
     | '/korthex-executivo'
     | '/lideranca'
     | '/manifesto'
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/diagnostico'
     | '/korthex-executivo'
     | '/lideranca'
     | '/manifesto'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/diagnostico'
     | '/korthex-executivo'
     | '/lideranca'
     | '/manifesto'
@@ -389,6 +401,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DiagnosticoRoute: typeof DiagnosticoRoute
   KorthexExecutivoRoute: typeof KorthexExecutivoRoute
   LiderancaRoute: typeof LiderancaRoute
   ManifestoRoute: typeof ManifestoRoute
@@ -454,6 +467,13 @@ declare module '@tanstack/react-router' {
       path: '/korthex-executivo'
       fullPath: '/korthex-executivo'
       preLoaderRoute: typeof KorthexExecutivoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnostico': {
+      id: '/diagnostico'
+      path: '/diagnostico'
+      fullPath: '/diagnostico'
+      preLoaderRoute: typeof DiagnosticoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -629,6 +649,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DiagnosticoRoute: DiagnosticoRoute,
   KorthexExecutivoRoute: KorthexExecutivoRoute,
   LiderancaRoute: LiderancaRoute,
   ManifestoRoute: ManifestoRoute,

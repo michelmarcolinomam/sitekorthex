@@ -221,8 +221,8 @@ function CTA() {
               </span>
             </a>
             <div className="mt-8">
-              <a
-                href="#cta"
+              <Link
+                to="/diagnostico"
                 className="group inline-flex items-center gap-4 rounded-full bg-black px-8 py-5 text-white hover:bg-black/85 transition-colors"
               >
                 <span className="text-sm uppercase tracking-[0.25em]">
@@ -231,7 +231,7 @@ function CTA() {
                 <span className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center transition-transform group-hover:translate-x-0.5">
                   →
                 </span>
-              </a>
+              </Link>
             </div>
           </div>
           <div className="md:col-span-6 md:col-start-7">

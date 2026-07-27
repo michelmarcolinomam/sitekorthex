@@ -187,12 +187,60 @@
 }
 .kx-admin .acoes-linha .sec { color: var(--muted); }
 .kx-admin .acoes-linha .sec:hover { color: var(--ink); }
-.kx-admin .pill { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--surface); color: var(--muted); }
+.kx-admin .pill { display: inline-block; white-space: nowrap; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--surface); color: var(--muted); }
 .kx-admin .pill.ok { background: var(--good-soft); color: var(--good); }
 .kx-admin .pill.espera { background: var(--warn-soft); color: var(--warn); }
+
+/* ─────────────  Solicitações que chegaram pelo site  ─────────────
+ * A fila de quem pediu o diagnóstico em /diagnostico e ainda não recebeu a
+ * chave. Fica no topo de Clientes & chaves porque uma solicitação É um
+ * cadastro — só veio de fora em vez de ser digitado aqui.
+ */
+.kx-admin .nav a { display: inline-flex; align-items: center; gap: 7px; }
+.kx-admin .contador {
+  background: var(--brand); color: #fff; font-size: 9.5px; font-weight: 700;
+  min-width: 17px; height: 17px; border-radius: 999px; display: inline-grid;
+  place-items: center; padding: 0 5px; letter-spacing: 0; font-variant-numeric: tabular-nums;
+}
+.kx-admin .pedidos { display: grid; gap: 12px; }
+.kx-admin .pedido { border: 1px solid var(--brand); border-radius: var(--radius); background: var(--card); overflow: hidden; }
+.kx-admin .pedido .topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 16px 18px; flex-wrap: wrap; }
+.kx-admin .pedido h3 { font-size: 1.02rem; font-weight: 650; letter-spacing: -.02em; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.kx-admin .pedido .quem { margin-top: 4px; font-size: .86rem; color: var(--ink-soft); }
+.kx-admin .pedido .dados { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 20px; padding: 0 18px 14px; }
+.kx-admin .pedido .dado { padding: 7px 0; display: flex; flex-direction: column; min-width: 0; }
+.kx-admin .pedido .dado .rot { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 650; }
+.kx-admin .pedido .dado .val { font-size: .88rem; overflow-wrap: anywhere; }
+.kx-admin .pedido .dado .val.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .84rem; }
+.kx-admin .pedido .chave-caixa {
+  margin: 0 18px 14px; border: 1px dashed var(--line-strong); border-radius: 10px;
+  padding: 11px 14px; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.kx-admin .pedido .chave-caixa .kx { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .96rem; font-weight: 600; }
+.kx-admin .pedido .chave-caixa .aviso { font-size: .78rem; color: var(--warn); }
+.kx-admin .pedido .msg { margin: 0 18px 14px; background: var(--surface); border-radius: 10px; padding: 12px 14px; font-size: .85rem; color: var(--ink-soft); line-height: 1.55; }
+.kx-admin .pedido .msg .rot { display: block; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 650; margin-bottom: 6px; }
+.kx-admin .pedido .msg b { color: var(--ink); font-weight: 620; }
+.kx-admin .pedido .acoes { display: flex; align-items: center; gap: 9px; padding: 13px 18px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.kx-admin .bt {
+  border: 1px solid var(--line-strong); background: var(--card); color: var(--ink);
+  border-radius: 999px; padding: 9px 15px; font-size: .8rem; font-family: inherit;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 7px; text-decoration: none;
+}
+.kx-admin .bt:hover { border-color: var(--muted); }
+.kx-admin .bt.zap { background: #1F9D55; border-color: #1F9D55; color: #fff; font-weight: 600; }
+.kx-admin .bt.zap:hover { background: #188044; border-color: #188044; }
+.kx-admin .bt.fantasma { border-color: transparent; color: var(--muted); margin-left: auto; }
+.kx-admin .bt.fantasma:hover { color: var(--crit); border-color: transparent; }
+.kx-admin .bt svg { width: 14px; height: 14px; }
+.kx-admin .sub-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.kx-admin .sub-head h2 { font-size: 1.06rem; font-weight: 650; letter-spacing: -.02em; }
+.kx-admin .sub-head p { margin-top: 3px; font-size: .84rem; color: var(--muted); }
 
 @media (max-width: 900px) {
   .kx-admin .trow { grid-template-columns: 1fr 1fr; }
   .kx-admin .trow.cab { display: none; }
   .kx-admin .acoes-linha { grid-column: 1 / -1; justify-content: flex-start; }
+  .kx-admin .bt.fantasma { margin-left: 0; }
 }
