@@ -35,13 +35,18 @@ interface AvaliacaoInfo {
   id: string;
   tipo: string;
   status: string;
+  /** Embed do cliente — só para escrever o nome da empresa na barra do topo. */
+  clientes?: { nome_empresa?: string } | null;
 }
 
 async function buscaAvaliacao(env: Env, chave: string): Promise<AvaliacaoInfo | null> {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE) return null;
+  // O embed de clientes vem na MESMA chamada: avaliacoes.cliente_id já aponta
+  // para lá, então saber a empresa não custa uma consulta a mais.
   const url =
     `${env.SUPABASE_URL}/rest/v1/avaliacoes` +
-    `?chave_avaliacao=eq.${encodeURIComponent(chave)}&select=id,tipo,status&limit=1`;
+    `?chave_avaliacao=eq.${encodeURIComponent(chave)}` +
+    `&select=id,tipo,status,clientes(nome_empresa)&limit=1`;
   const r = await fetch(url, {
     headers: {
       apikey: env.SUPABASE_SERVICE_ROLE,
@@ -151,6 +156,33 @@ function metaPrevia(tipo: string): string {
     '<meta name="twitter:card" content="summary_large_image">',
     `<meta name="twitter:image" content="${IMAGEM_PREVIA}">`,
   ].join("\n");
+}
+
+/**
+ * Escreve a empresa na barra do topo: "Nexa Logística · Korthex".
+ *
+ * É o que resolve o desconforto de receber um link desconhecido pedindo para
+ * avaliar o próprio chefe — a pessoa reconhece a companhia dela. O nome da
+ * empresa NÃO vai na prévia do WhatsApp (ver PREVIA_POR_TIPO); só aqui, para
+ * quem já abriu.
+ *
+ * **O escape não é opcional.** O nome vem do banco e o cadastro do admin aceita
+ * texto livre; sem escapar, uma empresa chamada `<script>` executaria na tela
+ * de quem responde. (O cadastro público já barra `<` e `>` em lead-validacao,
+ * mas o do admin não, e é ele que cria a maioria das fichas.)
+ *
+ * Se o alvo não existir num protótipo futuro, degrada para a barra original em
+ * vez de quebrar: quem está respondendo não pode perder o questionário por
+ * causa de um rótulo. Os 5 atuais foram conferidos e todos casam.
+ */
+function marcaDaEmpresa(html: string, empresa: string | null | undefined): string {
+  const nome = (empresa ?? "").trim().slice(0, 40);
+  if (!nome) return html;
+  const seguro = nome.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return html.replace(
+    /<span class="brand">[^<]*<\/span>/,
+    `<span class="brand">${seguro} · Korthex</span>`,
+  );
 }
 
 function pagina(titulo: string, texto: string, status: number): Response {
@@ -296,11 +328,12 @@ export async function handleAvaliacaoRoute(
   // Os protótipos terminam em </script>, sem </body> — por isso anexamos no
   // fim quando a tag não existe, em vez de perder a injeção em silêncio.
   const script = encanamento(chave);
+  const corpo = marcaDaEmpresa(template, av.clientes?.nome_empresa);
   const html =
     metaPrevia(av.tipo) +
-    (template.includes("</body>")
-      ? template.replace("</body>", `${script}</body>`)
-      : template + script);
+    (corpo.includes("</body>")
+      ? corpo.replace("</body>", `${script}</body>`)
+      : corpo + script);
   return new Response(html, {
     headers: {
       "content-type": "text/html; charset=utf-8",
