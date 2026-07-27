@@ -11,6 +11,7 @@ import {
   type Lider,
   type PainelCliente,
 } from "@/lib/diag-server";
+import { EXPLICACAO, PRINCIPIO } from "@/lib/diagnosticos-explicacao";
 import { validaLead } from "@/lib/lead-validacao";
 import { KorthexLogo } from "@/components/blog/Chrome";
 
@@ -167,6 +168,7 @@ function Conteudo({ painel }: { painel: PainelCliente }) {
   return (
     <main className="mx-auto max-w-[980px] px-6 pb-24">
       <CabecalhoPainel painel={painel} />
+      <ComoFunciona />
       <GerarAvaliacao chave={painel.chave} lideres={painel.lideres} />
       <ListaLideres painel={painel} />
       <MapaTeaser painel={painel} />
@@ -416,6 +418,103 @@ function Kpi({ valor, rotulo }: { valor: number; rotulo: string }) {
   );
 }
 
+/**
+ * O que este diagnóstico é, o que mede e por que importa. Aparece dentro do
+ * formulário e muda com a escolha — é onde a empresa aprende o método sem
+ * precisar de treinamento.
+ */
+/**
+ * O princípio do método, antes de qualquer botão. Fica sempre visível porque
+ * é o que explica por que as perguntas são feitas a outra pessoa, e não a
+ * quem está sendo avaliado — a dúvida que todo cliente tem na primeira vez.
+ */
+function ComoFunciona() {
+  return (
+    <section className="mb-8 rounded-xl border border-border bg-card p-7 md:p-8">
+      <p className={ROTULO}>Como funciona</p>
+      <h2 className="mt-2 text-lg font-semibold">{PRINCIPIO.titulo}</h2>
+      <p className="mt-3 max-w-3xl text-sm leading-relaxed text-foreground/65">{PRINCIPIO.texto}</p>
+
+      <div className="mt-6 grid gap-4 border-t border-border pt-5 md:grid-cols-3">
+        {(["lider", "executivo", "equipe"] as PapelAvaliado[]).map((p) => {
+          const e = EXPLICACAO[p];
+          return (
+            <div key={p}>
+              <p className="text-sm font-medium">{e.titulo}</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-foreground/55">{e.resumo}</p>
+              <p className="mt-2 text-xs text-foreground/40">
+                {e.mede.length} dimensões · {p === "lider" ? "duas óticas" : p === "equipe" ? "duas óticas" : "uma ótica, anônima"}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SobreODiagnostico({ papel }: { papel: PapelAvaliado }) {
+  const e = EXPLICACAO[papel];
+
+  return (
+    <section className="mt-7 rounded-lg border border-border bg-[color:var(--surface)] p-6">
+      <h3 className="text-sm font-semibold">{e.titulo}</h3>
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-foreground/65">{e.resumo}</p>
+
+      <div className="mt-6 grid gap-6 md:grid-cols-3">
+        <div>
+          <p className={ROTULO}>O que ele mede</p>
+          <ul className="mt-1 grid gap-1.5">
+            {e.mede.map((d) => (
+              <li key={d} className="flex gap-2 text-xs leading-relaxed text-foreground/60">
+                <span aria-hidden className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary/60" />
+                {d}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <p className={ROTULO}>Quem responde</p>
+          <ul className="mt-1 grid gap-2">
+            {e.quemResponde.map((q) => (
+              <li key={q} className="text-xs leading-relaxed text-foreground/60">
+                {q}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <p className={ROTULO}>O que a empresa ganha</p>
+          <ul className="mt-1 grid gap-2">
+            {e.ganho.map((g) => (
+              <li key={g} className="text-xs leading-relaxed text-foreground/60">
+                {g}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 border-t border-border pt-5 md:grid-cols-3">
+        <div className="md:col-span-2">
+          <p className={ROTULO}>Como aplicar</p>
+          <ol className="mt-1 grid gap-1.5">
+            {e.comoAplicar.map((passo, i) => (
+              <li key={passo} className="flex gap-2.5 text-xs leading-relaxed text-foreground/60">
+                <span className="font-semibold text-primary">{i + 1}.</span>
+                {passo}
+              </li>
+            ))}
+          </ol>
+        </div>
+        <p className="text-xs leading-relaxed text-amber-700">{e.cuidado}</p>
+      </div>
+    </section>
+  );
+}
+
 function GerarAvaliacao({ chave, lideres }: { chave: string; lideres: Lider[] }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
@@ -640,6 +739,8 @@ function GerarAvaliacao({ chave, lideres }: { chave: string; lideres: Lider[] })
             : ""}
         </p>
       ) : null}
+
+      <SobreODiagnostico papel={papel} />
 
       <p className={`${ROTULO} mt-7`}>
         {papel === "equipe" ? "Quem vai avaliar esta equipe?" : `Quem vai avaliar ${papel === "executivo" ? "este executivo" : "este líder"}?`}
