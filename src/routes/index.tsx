@@ -498,8 +498,8 @@ function Michel() {
                 src={michelImg}
                 alt="Michel Marcolino"
                 loading="lazy"
-                width={1080}
-                height={1440}
+                width={1086}
+                height={1448}
                 className="w-full h-full object-cover"
               />
             </div>
