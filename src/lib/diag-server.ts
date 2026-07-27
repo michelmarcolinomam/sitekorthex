@@ -556,6 +556,111 @@ export const publicCreateAvaliacoes = createServerFn({ method: "POST" })
   });
 
 
+/**
+ * A empresa CORRIGE um avaliado que ela mesma criou.
+ *
+ * Existe porque criar era irreversível: um nome digitado errado ou um
+ * respondente a mais só se resolvia arquivando e recriando — e isso jogava
+ * fora as respostas já coletadas, que ficam presas ao avaliacao_id antigo e
+ * saem do cálculo quando a avaliação é arquivada. Aqui a ficha é a mesma, então
+ * nada do que já foi respondido se perde, e a chave AV- não muda: o link que a
+ * equipe recebeu continua valendo.
+ *
+ * **O que NÃO se edita, e por quê:** o `papel` e o `tipo` da avaliação. Os dois
+ * decidem qual questionário a pessoa respondeu; trocá-los depois de haver
+ * resposta seria misturar respostas de perguntas diferentes no mesmo balde.
+ * A chave AV- também não, para não invalidar o que já foi distribuído.
+ *
+ * Escopo: cada id é conferido contra o cliente da chave KX- no SERVIDOR. A tela
+ * só mostra o que é do cliente, mas a tela pode ser contornada.
+ */
+export const publicEditarAvaliado = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      chave: string;
+      avaliado_id: string;
+      nome: string;
+      cargo?: string;
+      /** Só vale quando o papel é equipe; ignorado nos outros. */
+      tamanho?: number;
+      responsavel_id?: string | null;
+      responsavel_nome?: string | null;
+      /** Uma entrada por ótica que se quer reajustar. */
+      oticas?: { avaliacao_id: string; respondentes: number }[];
+    }) => input,
+  )
+  .handler(async ({ data }): Promise<{ ok: true; oticasAjustadas: number }> => {
+    const db = sb();
+
+    const cliente = await clientePorChave(db, data.chave);
+    if (!cliente) throw new Error("Chave de acesso não encontrada.");
+
+    // O avaliado tem de ser DESTE cliente. Sem esta conferência, um id
+    // adivinhado editaria a ficha de outra empresa.
+    const { data: avaliado, error: eBusca } = await db
+      .from("lideres")
+      .select("id, papel")
+      .eq("id", data.avaliado_id)
+      .eq("cliente_id", cliente.id)
+      .maybeSingle();
+    if (eBusca) throw new Error(eBusca.message);
+    if (!avaliado) throw new Error("Avaliado não encontrado.");
+
+    const papel = avaliado.papel as PapelAvaliado;
+
+    const nome = data.nome?.trim();
+    if (!nome)
+      throw new Error(
+        papel === "equipe" ? "Informe de quem é a equipe." : "Informe o nome de quem será avaliado.",
+      );
+
+    // Mesmos limites do cadastro, para os dois caminhos não divergirem.
+    const patch: Record<string, unknown> = {
+      nome: nome.slice(0, 120),
+      cargo: data.cargo?.trim().slice(0, 120) || null,
+    };
+
+    if (papel === "equipe") {
+      patch.tamanho = data.tamanho
+        ? Math.max(1, Math.min(500, Math.trunc(data.tamanho)))
+        : null;
+      // O vínculo ganha do texto, igual ao cadastro.
+      const responsavelId = data.responsavel_id || null;
+      patch.responsavel_id = responsavelId;
+      patch.responsavel_nome = responsavelId
+        ? null
+        : data.responsavel_nome?.trim().slice(0, 120) || null;
+    }
+
+    const { error: eUp } = await db
+      .from("lideres")
+      .update(patch)
+      .eq("id", avaliado.id)
+      .eq("cliente_id", cliente.id);
+    if (eUp) throw new Error(eUp.message);
+
+    // Respondentes esperados, ótica por ótica. Cada avaliação é conferida
+    // contra o avaliado E contra o cliente; arquivada não se mexe.
+    let oticasAjustadas = 0;
+    for (const o of data.oticas ?? []) {
+      const { data: linha, error } = await db
+        .from("avaliacoes")
+        .update({
+          respondentes_esperados: Math.max(0, Math.min(200, Math.trunc(o.respondentes || 0))),
+        })
+        .eq("id", o.avaliacao_id)
+        .eq("lider_id", avaliado.id)
+        .eq("cliente_id", cliente.id)
+        .neq("status", "arquivada")
+        .select("id")
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (linha) oticasAjustadas++;
+    }
+
+    return { ok: true, oticasAjustadas };
+  });
+
 /** A empresa arquiva uma avaliação própria. Só toca no que é dela. */
 export const publicArchiveAvaliacao = createServerFn({ method: "POST" })
   .inputValidator((input: { chave: string; avaliacao_id: string }) => input)

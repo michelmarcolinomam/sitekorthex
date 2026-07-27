@@ -3,6 +3,7 @@ import { useRouter } from "@tanstack/react-router";
 import {
   publicCreateAvaliacoes,
   publicArchiveAvaliacao,
+  publicEditarAvaliado,
   TIPOS_POR_PAPEL,
   type AvaliacaoTipo,
   type PapelAvaliado,
@@ -464,9 +465,255 @@ function destinoResultado(chave: string, avaliado: { id: string; papel?: PapelAv
   return `/diagnosticos/${chave}/lider/${avaliado.id}`;
 }
 
+/**
+ * Corrigir um avaliado já criado.
+ *
+ * Sem isto, um nome errado ou um respondente a mais só se resolvia arquivando e
+ * recriando — o que descarta as respostas já coletadas, porque elas ficam
+ * presas à avaliação antiga e arquivada sai do cálculo. Aqui a ficha é a mesma,
+ * então nada se perde e a chave AV- já distribuída continua valendo.
+ *
+ * O papel e a ótica NÃO aparecem como campo: os dois definem qual questionário
+ * a pessoa respondeu. O motivo fica escrito na tela, porque campo que
+ * simplesmente não existe parece esquecimento.
+ */
+function FormEdicao({
+  painel,
+  lider,
+  avaliacoes,
+  onFim,
+}: {
+  painel: PainelCliente;
+  lider: Lider;
+  avaliacoes: PainelCliente["avaliacoes"];
+  onFim: () => void;
+}) {
+  const router = useRouter();
+  const papel = (lider.papel ?? "lider") as PapelAvaliado;
+  const ehEquipe = papel === "equipe";
+
+  const [nome, setNome] = useState(lider.nome);
+  const [cargo, setCargo] = useState(lider.cargo ?? "");
+  const [tamanho, setTamanho] = useState(lider.tamanho ? String(lider.tamanho) : "");
+  const [responsavelId, setResponsavelId] = useState(lider.responsavel_id ?? "");
+  const [responsavelNome, setResponsavelNome] = useState(lider.responsavel_nome ?? "");
+  const [esperados, setEsperados] = useState<Record<string, number>>(
+    Object.fromEntries(avaliacoes.map((a) => [a.id, a.respondentes_esperados || 0])),
+  );
+  const [salvando, setSalvando] = useState(false);
+  const [falha, setFalha] = useState<string | null>(null);
+
+  // Só líderes podem conduzir uma equipe, e a própria equipe não entra na lista.
+  const candidatos = painel.lideres.filter(
+    (l) => (l.papel ?? "lider") === "lider" && l.id !== lider.id,
+  );
+
+  const ajusta = (id: string, delta: number) =>
+    setEsperados((e) => ({ ...e, [id]: Math.max(0, Math.min(200, (e[id] ?? 0) + delta)) }));
+
+  const salvar = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (salvando) return;
+    setFalha(null);
+    if (!nome.trim()) {
+      setFalha(ehEquipe ? "Informe de quem é a equipe." : "Informe o nome de quem será avaliado.");
+      return;
+    }
+    setSalvando(true);
+    try {
+      await publicEditarAvaliado({
+        data: {
+          chave: painel.chave,
+          avaliado_id: lider.id,
+          nome,
+          cargo,
+          ...(ehEquipe
+            ? {
+                tamanho: Number(tamanho) || undefined,
+                responsavel_id: responsavelId || null,
+                responsavel_nome: responsavelId ? null : responsavelNome,
+              }
+            : {}),
+          oticas: avaliacoes.map((a) => ({
+            avaliacao_id: a.id,
+            respondentes: esperados[a.id] ?? 0,
+          })),
+        },
+      });
+      await router.invalidate();
+      onFim();
+    } catch (err) {
+      setFalha(err instanceof Error ? err.message : "Não foi possível salvar.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={salvar}
+      className="rounded-xl border border-primary bg-card p-6"
+      aria-label={`Corrigir ${lider.nome}`}
+    >
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <label className={ROTULO} htmlFor={`ed-nome-${lider.id}`}>
+            {ehEquipe ? "De quem é a equipe" : "Nome do avaliado"}
+          </label>
+          <input
+            id={`ed-nome-${lider.id}`}
+            className={CAMPO}
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className={ROTULO} htmlFor={`ed-cargo-${lider.id}`}>
+            Cargo
+          </label>
+          <input
+            id={`ed-cargo-${lider.id}`}
+            className={CAMPO}
+            value={cargo}
+            onChange={(e) => setCargo(e.target.value)}
+          />
+        </div>
+
+        {ehEquipe ? (
+          <>
+            <div>
+              <label className={ROTULO} htmlFor={`ed-tam-${lider.id}`}>
+                Quantas pessoas
+              </label>
+              <input
+                id={`ed-tam-${lider.id}`}
+                className={CAMPO}
+                inputMode="numeric"
+                value={tamanho}
+                onChange={(e) => setTamanho(e.target.value.replace(/\D/g, ""))}
+              />
+            </div>
+            <div>
+              <label className={ROTULO} htmlFor={`ed-resp-${lider.id}`}>
+                Quem conduz
+              </label>
+              {candidatos.length ? (
+                <select
+                  id={`ed-resp-${lider.id}`}
+                  className={CAMPO}
+                  value={responsavelId}
+                  onChange={(e) => setResponsavelId(e.target.value)}
+                >
+                  <option value="">Informar por nome</option>
+                  {candidatos.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+              {!responsavelId ? (
+                <input
+                  className={`${CAMPO} ${candidatos.length ? "mt-2" : ""}`}
+                  placeholder="Nome de quem conduz"
+                  value={responsavelNome}
+                  onChange={(e) => setResponsavelNome(e.target.value)}
+                />
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      <p className="mt-4 flex items-start gap-2.5 rounded-md border border-dashed border-border bg-foreground/[0.03] px-3.5 py-3 text-xs leading-relaxed text-foreground/55">
+        <span aria-hidden="true">🔒</span>
+        <span>
+          O que está sendo diagnosticado é <strong className="font-semibold text-foreground/75">
+            {ROTULO_PAPEL[papel]}
+          </strong>{" "}
+          e não muda, nem as óticas escolhidas. Elas definem qual questionário cada pessoa
+          respondeu — trocar agora faria as respostas já dadas deixarem de valer. O link também
+          continua o mesmo.
+        </span>
+      </p>
+
+      <div className="mt-5 grid gap-3">
+        {avaliacoes.map((a) => {
+          const got = painel.respostasPorAvaliacao[a.id] ?? 0;
+          const exp = esperados[a.id] ?? 0;
+          const pct = exp > 0 ? Math.min(100, Math.round((got / exp) * 100)) : 0;
+          return (
+            <div key={a.id} className="rounded-md border border-border p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-[10px] uppercase tracking-[0.16em] text-foreground/50">
+                  {TIPO_CURTO[a.tipo]}
+                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-foreground/45">Respondentes esperados</span>
+                  <div className="inline-flex items-center overflow-hidden rounded-full border border-primary">
+                    <button
+                      type="button"
+                      onClick={() => ajusta(a.id, -1)}
+                      aria-label="Diminuir"
+                      className="h-8 w-8 text-primary transition-colors hover:bg-primary/10"
+                    >
+                      −
+                    </button>
+                    <span className="min-w-8 text-center text-[13px] tabular-nums">{exp}</span>
+                    <button
+                      type="button"
+                      onClick={() => ajusta(a.id, 1)}
+                      aria-label="Aumentar"
+                      className="h-8 w-8 text-primary transition-colors hover:bg-primary/10"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center gap-3">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-foreground/8">
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                </div>
+                <span className="shrink-0 text-[11px] text-foreground/45">
+                  {got}/{exp || "—"} respostas
+                </span>
+              </div>
+
+              {exp > 0 && got > exp ? (
+                <p className="mt-2.5 text-[11.5px] leading-relaxed text-amber-700 dark:text-amber-500">
+                  Já chegaram {got} respostas e você está pedindo {exp}. O número não impede
+                  ninguém de responder — só muda a conta que aparece aqui.
+                </p>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
+      {falha ? <p className="mt-4 text-xs text-destructive">{falha}</p> : null}
+
+      <div className="mt-5 flex items-center gap-4 border-t border-border pt-4">
+        <button type="submit" className={BOTAO} disabled={salvando}>
+          {salvando ? "Salvando…" : "Salvar correções"}
+        </button>
+        <button
+          type="button"
+          onClick={onFim}
+          className="text-[10px] uppercase tracking-[0.16em] text-foreground/45 hover:text-foreground"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function ListaLideres({ painel }: { painel: PainelCliente }) {
   const router = useRouter();
   const [copiada, setCopiada] = useState<string | null>(null);
+  const [editando, setEditando] = useState<string | null>(null);
 
   const copiar = (chaveAv: string) => {
     void navigator.clipboard?.writeText(`${window.location.origin}/avaliacao/${chaveAv}`);
@@ -520,6 +767,19 @@ function ListaLideres({ painel }: { painel: PainelCliente }) {
           const got = painel.respostasPorAvaliacao[a.id] ?? 0;
           return a.respondentes_esperados > 0 && got >= a.respondentes_esperados;
         });
+
+        if (editando === lider.id) {
+          return (
+            <FormEdicao
+              key={lider.id}
+              painel={painel}
+              lider={lider}
+              avaliacoes={suas}
+              onFim={() => setEditando(null)}
+            />
+          );
+        }
+
         return (
           <section key={lider.id} className="rounded-xl border border-border bg-card p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
@@ -535,14 +795,23 @@ function ListaLideres({ painel }: { painel: PainelCliente }) {
                     .join(" · ")}
                 </p>
               </div>
-              {temResposta ? (
-                <a
-                  href={destinoResultado(painel.chave, lider)}
-                  className="shrink-0 rounded-full border border-primary px-5 py-2 text-[10px] uppercase tracking-[0.16em] text-primary transition-colors hover:bg-primary hover:text-white"
+              <div className="flex shrink-0 items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setEditando(lider.id)}
+                  className="text-[10px] uppercase tracking-[0.16em] text-primary hover:underline"
                 >
-                  Ver resultado {completo ? "" : "parcial"}
-                </a>
-              ) : null}
+                  Editar
+                </button>
+                {temResposta ? (
+                  <a
+                    href={destinoResultado(painel.chave, lider)}
+                    className="rounded-full border border-primary px-5 py-2 text-[10px] uppercase tracking-[0.16em] text-primary transition-colors hover:bg-primary hover:text-white"
+                  >
+                    Ver resultado {completo ? "" : "parcial"}
+                  </a>
+                ) : null}
+              </div>
             </div>
 
             <div className="grid gap-3">
