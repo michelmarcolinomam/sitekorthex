@@ -87,9 +87,20 @@ function Clientes() {
   const [copiado, setCopiado] = useState<string | null>(null);
 
   const naoArquivados = clientes.filter((c) => c.status !== "arquivado");
-  // Solicitação pendente = chave gerada e ainda não entregue.
-  const pendentes = naoArquivados.filter((c) => !c.liberado_em);
-  const liberados = naoArquivados.filter((c) => c.liberado_em);
+
+  /**
+   * Pediu pelo site e ainda não recebeu a chave DEPOIS desse pedido.
+   *
+   * A comparação de datas é o que faz uma empresa que já é cliente reaparecer
+   * quando pede um ciclo novo. A versão anterior olhava só "liberado_em é
+   * nulo", e por isso o pedido de quem já estava na base sumia do painel.
+   */
+  const pendente = (c: Cliente) =>
+    Boolean(c.solicitado_em) &&
+    (!c.liberado_em || new Date(c.liberado_em) < new Date(c.solicitado_em as string));
+
+  const pendentes = naoArquivados.filter(pendente);
+  const liberados = naoArquivados.filter((c) => !pendente(c) && c.liberado_em);
 
   async function criar(e: React.FormEvent) {
     e.preventDefault();
@@ -151,6 +162,26 @@ function Clientes() {
     }
   }
 
+  /**
+   * Encerra o pedido de quem já é cliente sem arquivar a ficha: carimba a data
+   * de entrega e a empresa sai da fila, continuando na lista de clientes.
+   */
+  async function encerrar(c: Cliente) {
+    if (
+      !window.confirm(
+        `Encerrar o pedido da "${c.nome_empresa}" sem reenviar?\n\n` +
+          `A ficha continua na lista de clientes com a chave ${c.chave}. Só sai da fila.`,
+      )
+    )
+      return;
+    try {
+      await adminLiberarSolicitacao({ data: c.id });
+      await router.invalidate();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Erro ao encerrar.");
+    }
+  }
+
   async function recusar(c: Cliente) {
     if (
       !window.confirm(
@@ -195,7 +226,11 @@ function Clientes() {
                     <div>
                       <h3>
                         {c.nome_empresa}
-                        {c.origem === "site" ? <span className="pill">do site</span> : null}
+                        {c.liberado_em ? (
+                          <span className="pill espera">já era cliente · pediu de novo</span>
+                        ) : (
+                          <span className="pill">do site</span>
+                        )}
                       </h3>
                       <p className="quem">
                         {[c.responsavel_nome, c.responsavel_cargo, c.tamanho_empresa]
@@ -203,7 +238,7 @@ function Clientes() {
                           .join(" · ") || "Sem dados do responsável"}
                       </p>
                     </div>
-                    <span className="quando">{quando(c.created_at)}</span>
+                    <span className="quando">{quando(c.solicitado_em ?? c.created_at)}</span>
                   </div>
 
                   <div className="dados">
@@ -220,11 +255,15 @@ function Clientes() {
                   <div className="chave-caixa">
                     <div>
                       <span className="rot" style={{ fontSize: 9, letterSpacing: ".14em" }}>
-                        Chave já gerada
+                        {c.liberado_em ? "Chave desta empresa" : "Chave já gerada"}
                       </span>
                       <div className="kx">{c.chave}</div>
                     </div>
-                    <span className="aviso">Ainda não entregue — quem tem a chave entra.</span>
+                    <span className="aviso">
+                      {c.liberado_em
+                        ? `Já foi entregue em ${data(c.liberado_em)} — é a mesma chave, reenvie.`
+                        : "Ainda não entregue — quem tem a chave entra."}
+                    </span>
                   </div>
 
                   <div className="msg">
@@ -255,9 +294,20 @@ function Clientes() {
                     <button type="button" className="bt" onClick={() => copiar(c, mensagemDeEntrega(c))}>
                       {copiado === c.id ? "Copiado ✓" : "Copiar mensagem"}
                     </button>
-                    <button type="button" className="bt fantasma" onClick={() => void recusar(c)}>
-                      Recusar
-                    </button>
+                    {/*
+                      Para quem JÁ É CLIENTE, recusar não pode arquivar a ficha:
+                      um clique errado apagaria um cliente real da lista. Nesse
+                      caso a saída é só encerrar o pedido.
+                    */}
+                    {c.liberado_em ? (
+                      <button type="button" className="bt fantasma" onClick={() => void encerrar(c)}>
+                        Já resolvi
+                      </button>
+                    ) : (
+                      <button type="button" className="bt fantasma" onClick={() => void recusar(c)}>
+                        Recusar
+                      </button>
+                    )}
                   </div>
                 </article>
               ))}

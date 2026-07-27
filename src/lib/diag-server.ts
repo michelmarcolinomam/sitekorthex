@@ -59,9 +59,11 @@ export interface Cliente {
   observacoes: string | null;
   criado_por: string | null;
   lead_preenchido_em: string | null;
-  /** De onde a empresa veio: cadastrada pela Korthex ou solicitada pelo site. */
+  /** Como a ficha NASCEU: cadastrada pela Korthex ou criada por um pedido do site. */
   origem: "korthex" | "site";
-  /** Quando a Korthex entregou a chave. Nulo = solicitação pendente. */
+  /** Quando a empresa PEDIU o diagnóstico em /diagnostico. */
+  solicitado_em: string | null;
+  /** Quando a Korthex entregou a chave. */
   liberado_em: string | null;
   tamanho_empresa: string | null;
   created_at: string;
@@ -354,13 +356,19 @@ export const publicSolicitarDiagnostico = createServerFn({ method: "POST" })
     const db = sb();
     const { empresa, nome, cargo, email, telefone, tamanho } = v.limpo;
 
+    const agora = new Date().toISOString();
     const contato = {
       responsavel_nome: nome.slice(0, 120),
       responsavel_cargo: cargo.slice(0, 120),
       responsavel_email: email.slice(0, 160),
       responsavel_telefone: telefone.slice(0, 40),
       tamanho_empresa: tamanho,
-      lead_preenchido_em: new Date().toISOString(),
+      lead_preenchido_em: agora,
+      // Marca o PEDIDO. É isto que coloca a empresa na fila de liberação, e não
+      // o fato de a ficha ser nova: uma empresa que já é cliente e pede um
+      // ciclo novo tem de aparecer igual. Antes disso, o pedido que caía numa
+      // ficha existente ficava invisível no painel.
+      solicitado_em: agora,
     };
 
     // Dedup em duas passadas em vez de um .or(): o valor vai como parâmetro,
@@ -381,8 +389,10 @@ export const publicSolicitarDiagnostico = createServerFn({ method: "POST" })
     const existente = porEmail ?? porEmpresa;
 
     if (existente) {
-      // Atualiza o contato, mas NÃO mexe em liberado_em: reenviar formulário
-      // não pode virar (nem desfazer) uma liberação.
+      // Atualiza o contato e carimba o pedido. NÃO mexe em liberado_em: quem
+      // entrega é a Korthex. Como solicitado_em passa a ser mais recente que a
+      // última entrega, a ficha volta para a fila — é assim que uma empresa que
+      // já é cliente e pede um ciclo novo aparece para ser atendida.
       const { error } = await db.from("clientes").update(contato).eq("id", existente.id);
       if (error) throw new Error(error.message);
 
@@ -394,7 +404,7 @@ export const publicSolicitarDiagnostico = createServerFn({ method: "POST" })
         telefone,
         tamanho,
         situacao: existente.liberado_em
-          ? `JÁ É CLIENTE com a chave entregue (ficha "${existente.nome_empresa}"). Os dados de contato foram atualizados e NÃO entrou na fila de solicitações — trate direto.`
+          ? `JÁ ERA CLIENTE com a chave entregue (ficha "${existente.nome_empresa}"). Pediu de novo — está na fila de liberação, marcada como pedido de quem já é cliente.`
           : `Ficha "${existente.nome_empresa}" já estava na fila aguardando liberação. Dados atualizados.`,
       });
 
@@ -688,9 +698,12 @@ export const adminCreateCliente = createServerFn({ method: "POST" })
   });
 
 /**
- * Entrega a chave: marca a solicitação como liberada. O envio em si é humano
- * (WhatsApp ou e-mail) — o sistema só registra que saiu, e é isso que tira a
- * empresa da fila.
+ * Entrega a chave: registra que saiu. O envio em si é humano (WhatsApp ou
+ * e-mail) — o sistema só carimba a data, e é isso que tira a empresa da fila.
+ *
+ * Não trava em `liberado_em is null`: uma empresa que já recebeu a chave uma
+ * vez pode pedir de novo, e essa segunda entrega tem de ser registrável. O que
+ * exige é ter um pedido — sem `solicitado_em` não há o que liberar.
  */
 export const adminLiberarSolicitacao = createServerFn({ method: "POST" })
   .inputValidator((id: string) => id)
@@ -700,11 +713,11 @@ export const adminLiberarSolicitacao = createServerFn({ method: "POST" })
       .from("clientes")
       .update({ liberado_em: new Date().toISOString() })
       .eq("id", id)
-      .is("liberado_em", null)
+      .not("solicitado_em", "is", null)
       .select("*")
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!row) throw new Error("Essa solicitação já havia sido liberada.");
+    if (!row) throw new Error("Essa ficha não tem pedido do site para liberar.");
     return row as Cliente;
   });
 
