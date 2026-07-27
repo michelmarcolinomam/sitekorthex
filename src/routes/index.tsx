@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { MenuMobile } from "@/components/site/MenuMobile";
 import { useEffect, useState } from "react";
 import { ContactForm } from "@/components/ContactForm";
 import heroImg from "@/assets/hero-korthex.jpg";
@@ -111,6 +112,8 @@ function Header() {
             </a>
           ))}
         </nav>
+
+        <MenuMobile nav={nav} />
       </div>
     </header>
   );
