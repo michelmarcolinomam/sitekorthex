@@ -21,8 +21,26 @@ export const Route = createFileRoute("/diagnosticos/$chave")({
   loader: ({ params }) => publicGetPainel({ data: params.chave }),
   head: () => ({
     meta: [
-      { title: "Seu diagnóstico — Korthex" },
+      { title: "Diagnóstico Korthex — uma leitura real do seu time" },
       { name: "robots", content: "noindex, nofollow" },
+      /*
+       * Este é o link que a Korthex manda pelo WhatsApp. Sem og:image e
+       * og:description próprios ele herdava o cartão genérico do site, sem
+       * dizer que era um diagnóstico. A imagem é do diagnóstico, não a do site.
+       *
+       * A descrição NÃO cita a chave nem o nome da empresa: a prévia é gerada
+       * por servidor de terceiro e pode ser vista por quem só recebeu o link
+       * encaminhado.
+       */
+      { property: "og:title", content: "Diagnóstico Korthex — uma leitura real do seu time" },
+      {
+        property: "og:description",
+        content:
+          "Seu acesso está liberado. Escolha o que diagnosticar, distribua os questionários e receba o mapa da empresa.",
+      },
+      { property: "og:image", content: "https://korthex.com.br/assets/og-diagnostico.jpg" },
+      { name: "twitter:image", content: "https://korthex.com.br/assets/og-diagnostico.jpg" },
+      { property: "og:type", content: "website" },
     ],
     links: [{ rel: "stylesheet", href: boasVindasCss }],
   }),

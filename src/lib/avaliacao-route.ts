@@ -80,6 +80,27 @@ async function gravaResposta(
   return r.ok;
 }
 
+/**
+ * A prévia do link do questionário no WhatsApp.
+ *
+ * É o link de MAIOR volume da série — cada pessoa da equipe recebe um — e era
+ * o que aparecia pior: os protótipos começam direto no <title>, sem <head>,
+ * então não havia meta tag nenhuma. Vai por PREFIXO, e não por replace, porque
+ * não existe <head> para substituir; o navegador monta o head implícito.
+ *
+ * O texto é diferente do link do cliente de propósito: quem abre isto não é
+ * quem contratou, é alguém convidado a avaliar quem está acima dele. A
+ * primeira coisa que essa pessoa precisa ler é que é anônimo.
+ */
+const META_PREVIA = [
+  '<meta property="og:type" content="website">',
+  '<meta property="og:title" content="Sua resposta no diagnóstico — Korthex">',
+  '<meta property="og:description" content="Anônimo, sem identificação de quem responde. Leva alguns minutos e ajuda a empresa a enxergar o que ninguém aponta.">',
+  '<meta property="og:image" content="https://korthex.com.br/assets/og-diagnostico.jpg">',
+  '<meta name="twitter:card" content="summary_large_image">',
+  '<meta name="twitter:image" content="https://korthex.com.br/assets/og-diagnostico.jpg">',
+].join("\n");
+
 function pagina(titulo: string, texto: string, status: number): Response {
   return new Response(
     `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
@@ -223,9 +244,11 @@ export async function handleAvaliacaoRoute(
   // Os protótipos terminam em </script>, sem </body> — por isso anexamos no
   // fim quando a tag não existe, em vez de perder a injeção em silêncio.
   const script = encanamento(chave);
-  const html = template.includes("</body>")
-    ? template.replace("</body>", `${script}</body>`)
-    : template + script;
+  const html =
+    META_PREVIA +
+    (template.includes("</body>")
+      ? template.replace("</body>", `${script}</body>`)
+      : template + script);
   return new Response(html, {
     headers: {
       "content-type": "text/html; charset=utf-8",

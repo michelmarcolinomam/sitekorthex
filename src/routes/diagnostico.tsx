@@ -27,13 +27,15 @@ export const Route = createFileRoute("/diagnostico")({
         content:
           "Solicite o diagnóstico Korthex e descubra onde a sua empresa trava: cada camada é lida por quem depende dela, e a distância entre as leituras mostra o problema.",
       },
-      { property: "og:title", content: "Diagnóstico gratuito de liderança — Korthex" },
+      { property: "og:title", content: "Diagnóstico Korthex — uma leitura real do seu time" },
       {
         property: "og:description",
         content:
-          "Transforme percepção em dado. Solicite o diagnóstico da sua empresa e receba a leitura por dimensão, o mapa da liderança e o ranking.",
+          "Pare de discutir o que trava por opinião. Peça o diagnóstico gratuito da sua empresa.",
       },
       { property: "og:url", content: "https://korthex.com.br/diagnostico" },
+      { property: "og:image", content: "https://korthex.com.br/assets/og-diagnostico.jpg" },
+      { name: "twitter:image", content: "https://korthex.com.br/assets/og-diagnostico.jpg" },
     ],
     links: [{ rel: "canonical", href: "https://korthex.com.br/diagnostico" }],
   }),
