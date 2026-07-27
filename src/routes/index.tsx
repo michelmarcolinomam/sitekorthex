@@ -138,16 +138,25 @@ function Hero() {
       <div className="absolute inset-0 z-10 flex items-center px-6 md:px-12 pt-20">
         <div className="mx-auto max-w-[1400px] w-full">
           <h1
-            className="text-display text-foreground max-w-[24ch]"
+            className="text-display text-foreground max-w-[24ch] text-[clamp(1.7rem,9vw,2.5rem)] md:text-[clamp(2.5rem,4.6vw,4.75rem)]"
             style={{
-              fontSize: "clamp(2rem, 4.6vw, 4.75rem)",
               letterSpacing: "-0.045em",
               lineHeight: 0.95,
             }}
           >
-            Nenhum líder coloca<br />
-            na companhia aquilo que<br />
-            não tem{" "}
+            {/*
+              As quebras mudam com a largura. No desktop a frase cabe em três
+              linhas largas; no celular ela precisa de cinco curtas, senão uma
+              palavra sobra sozinha no fim de uma linha. Por isso cada <br />
+              aparece só no seu tamanho de tela, em vez de existirem dois
+              títulos duplicados (que dariam dois H1 com o mesmo texto).
+            */}
+            Nenhum líder
+            <br className="md:hidden" /> coloca
+            <br className="hidden md:inline" /> na
+            <br className="md:hidden" /> companhia aquilo
+            <br /> que não tem{" "}
+            <br className="md:hidden" />
             <span className="italic font-serif normal-case text-primary">
               dentro de si.
             </span>
