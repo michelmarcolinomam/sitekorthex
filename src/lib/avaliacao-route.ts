@@ -81,31 +81,77 @@ async function gravaResposta(
 }
 
 /**
+ * O que a pessoa vai responder, por leitura.
+ *
+ * Este link é o que a EMPRESA gera no painel dela e dispara para a equipe. Ele
+ * é exclusivo daquela avaliação, então a prévia também é: cada uma das cinco
+ * leituras coloca a pessoa numa situação diferente, e ela precisa saber do que
+ * se trata ANTES de abrir.
+ *
+ * **Não cita o nome da empresa de propósito.** A prévia é montada por servidor
+ * do WhatsApp e fica visível para quem receber o link encaminhado; a empresa
+ * ali contaria a terceiros que aquela companhia está em diagnóstico. Quem
+ * precisa se reconhecer é quem abre o link, dentro da página.
+ */
+const PREVIA_POR_TIPO: Record<string, { titulo: string; descricao: string }> = {
+  lideranca_time: {
+    titulo: "Sua visão sobre quem te lidera — Korthex",
+    descricao:
+      "Anônimo, sem identificação de quem responde. Poucos minutos, sem resposta certa ou errada.",
+  },
+  lideranca_executivo: {
+    titulo: "Sua avaliação de um líder — Korthex",
+    descricao:
+      "A leitura de quem acompanha esse líder de cima. Poucos minutos, sem resposta certa ou errada.",
+  },
+  executivo_lideranca: {
+    titulo: "Sua avaliação do executivo — Korthex",
+    descricao:
+      "Anônimo, sem identificação de quem responde. A leitura de quem é liderado por ele.",
+  },
+  performance_lideranca: {
+    titulo: "Sua avaliação da equipe — Korthex",
+    descricao:
+      "A leitura de quem conduz o time no dia a dia. Poucos minutos, sem resposta certa ou errada.",
+  },
+  performance_executivo: {
+    titulo: "Sua avaliação da equipe — Korthex",
+    descricao:
+      "A leitura de quem cobra o resultado do time. Poucos minutos, sem resposta certa ou errada.",
+  },
+};
+
+const IMAGEM_PREVIA = "https://korthex.com.br/assets/og-diagnostico.jpg";
+
+/**
  * O <head> que os protótipos não têm.
  *
  * Eles começam direto no <title>, sem <head> nem <html>, então não havia meta
- * tag nenhuma. Vai por PREFIXO, e não por replace, porque não existe <head>
- * para substituir; o navegador monta o head implícito. Fica aqui, no servidor,
- * para os HTMLs aprovados continuarem intocados.
+ * tag nenhuma. Isto vai por PREFIXO, e não por replace, porque não existe
+ * <head> para substituir; o navegador monta o head implícito. Fica aqui, no
+ * servidor, para os HTMLs aprovados continuarem intocados.
  *
  * **A viewport é a tag que mais importa.** Sem ela o celular renderiza a
  * página a 980px e reduz tudo a ~40%, e o `@media (max-width:560px)` que os
  * protótipos já trazem nunca dispara — o design de celular existia e estava
  * inalcançável. O questionário é respondido majoritariamente no celular.
- *
- * O texto da prévia é diferente do link do cliente de propósito: quem abre
- * isto não é quem contratou, é alguém convidado a avaliar quem está acima
- * dele. A primeira coisa que essa pessoa precisa ler é que é anônimo.
  */
-const META_PREVIA = [
-  '<meta name="viewport" content="width=device-width,initial-scale=1">',
-  '<meta property="og:type" content="website">',
-  '<meta property="og:title" content="Sua resposta no diagnóstico — Korthex">',
-  '<meta property="og:description" content="Anônimo, sem identificação de quem responde. Leva alguns minutos e ajuda a empresa a enxergar o que ninguém aponta.">',
-  '<meta property="og:image" content="https://korthex.com.br/assets/og-diagnostico.jpg">',
-  '<meta name="twitter:card" content="summary_large_image">',
-  '<meta name="twitter:image" content="https://korthex.com.br/assets/og-diagnostico.jpg">',
-].join("\n");
+function metaPrevia(tipo: string): string {
+  const p = PREVIA_POR_TIPO[tipo] ?? {
+    titulo: "Sua resposta no diagnóstico — Korthex",
+    descricao: "Anônimo, sem identificação de quem responde. Leva alguns minutos.",
+  };
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  return [
+    '<meta name="viewport" content="width=device-width,initial-scale=1">',
+    '<meta property="og:type" content="website">',
+    `<meta property="og:title" content="${esc(p.titulo)}">`,
+    `<meta property="og:description" content="${esc(p.descricao)}">`,
+    `<meta property="og:image" content="${IMAGEM_PREVIA}">`,
+    '<meta name="twitter:card" content="summary_large_image">',
+    `<meta name="twitter:image" content="${IMAGEM_PREVIA}">`,
+  ].join("\n");
+}
 
 function pagina(titulo: string, texto: string, status: number): Response {
   return new Response(
@@ -251,7 +297,7 @@ export async function handleAvaliacaoRoute(
   // fim quando a tag não existe, em vez de perder a injeção em silêncio.
   const script = encanamento(chave);
   const html =
-    META_PREVIA +
+    metaPrevia(av.tipo) +
     (template.includes("</body>")
       ? template.replace("</body>", `${script}</body>`)
       : template + script);
