@@ -1,0 +1,157 @@
+/*
+ * Tela de boas-vindas do cliente — o meio do caminho entre o cadastro e o
+ * painel operacional. Aqui a empresa aprende o método antes de aplicar.
+ *
+ * Visual aprovado pelo Michel como proposta antes de virar código. Escopado
+ * em .kx-boas; PARA MEXER NO VISUAL, EDITE AQUI.
+ */
+
+
+  .kx-boas {
+    --bg: #F4F6FC; --surface: #EAEDF7; --card: #FFFFFF;
+    --ink: #1E1E2F; --ink-soft: #4A4860; --muted: #7C7A92; --faint: #A9A6BC;
+    --line: #E2E4F0; --line-strong: #CFD2E4;
+    --brand: #8A2BE2; --brand-deep: #6700B2; --brand-soft: #F1E8FF;
+    --time: #149E73; --time-soft: #E3F5EE;
+    --exec: #1F6FEB; --exec-soft: #E8F0FE;
+    --crit: #D65A47; --warn: #C6A22E; --good: #2F9E78;
+    --pad: clamp(20px, 5vw, 64px);
+    --radius: 16px;
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-color-scheme: dark) {
+    .kx-boas {
+      --bg: #14131C; --surface: #1C1B26; --card: #1F1E2B;
+      --ink: #EDECF4; --ink-soft: #B9B6CC; --muted: #8B88A3; --faint: #6A6880;
+      --line: #2C2A3A; --line-strong: #3B3950;
+      --brand: #A96BEE; --brand-deep: #C9A2F7; --brand-soft: #2A2038;
+      --time: #3FC095; --time-soft: #12302A;
+      --exec: #6BA3F5; --exec-soft: #17233A;
+      --crit: #E87C6A; --warn: #D9BC5A; --good: #55BE99;
+    }
+  }
+  .kx-boas *, .kx-boas *::before, .kx-boas *::after { box-sizing: border-box; }
+  .kx-boas h1, .kx-boas h2, .kx-boas h3, .kx-boas p, .kx-boas ul, .kx-boas ol { margin: 0; }
+  .kx-boas ul, .kx-boas ol { padding: 0; list-style: none; }
+  .kx-boas .wrap { max-width: 1080px; margin: 0 auto; padding: 0 var(--pad); }
+  .kx-boas .num { font-variant-numeric: tabular-nums; }
+
+  /* ── barra ── */
+  .kx-boas .topo { border-bottom: 1px solid var(--line); background: var(--card); position: sticky; top: 0; z-index: 30; }
+  .kx-boas .topo .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 15px; padding-bottom: 15px; }
+  .kx-boas .marca { font-weight: 700; font-size: 15px; letter-spacing: .2em; text-transform: uppercase; }
+  .kx-boas .marca span { color: var(--brand); }
+  .kx-boas .topo .empresa { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+
+  .kx-boas .btn {
+    display: inline-flex; align-items: center; gap: 10px; border: none; cursor: pointer;
+    background: var(--brand); color: #fff; border-radius: 999px;
+    padding: 15px 28px; font: inherit; font-size: 11px; font-weight: 600;
+    letter-spacing: .16em; text-transform: uppercase; text-decoration: none;
+    box-shadow: 0 8px 24px -12px var(--brand); transition: transform .15s, background .2s;
+  }
+  .kx-boas .btn:hover { background: var(--brand-deep); transform: translateY(-1px); }
+  .kx-boas .btn-fantasma { background: transparent; color: var(--brand); border: 1px solid var(--line-strong); box-shadow: none; }
+  .kx-boas .btn-fantasma:hover { background: transparent; border-color: var(--brand); }
+  .kx-boas .btn-claro { background: #fff; color: var(--brand-deep); box-shadow: none; }
+  .kx-boas .btn-claro:hover { background: #fff; opacity: .92; }
+
+  .kx-boas .olho { display: inline-flex; align-items: center; gap: 13px; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; font-weight: 600; color: var(--brand); }
+  .kx-boas .olho::before { content: ""; width: 26px; height: 1px; background: var(--brand); opacity: .55; }
+
+  /* ── abertura ── */
+  .kx-boas .hero { padding: clamp(48px, 9vw, 104px) 0 clamp(36px, 6vw, 64px); }
+  .kx-boas .hero h1 { font-size: clamp(2.1rem, 5.4vw, 3.5rem); font-weight: 660; letter-spacing: -.03em; line-height: 1.04; margin: 18px 0 0; text-wrap: balance; max-width: 20ch; }
+  .kx-boas .hero .lead { margin-top: 22px; font-size: clamp(1rem, 1.6vw, 1.15rem); line-height: 1.65; color: var(--ink-soft); max-width: 62ch; }
+  .kx-boas .hero .acoes { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 36px; align-items: center; }
+  .kx-boas .hero .tempo { font-size: .84rem; color: var(--muted); }
+
+  .kx-boas .selos { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px; }
+  .kx-boas .selo { display: inline-flex; align-items: center; gap: 9px; border: 1px solid var(--line-strong); background: var(--card); border-radius: 999px; padding: 9px 16px; font-size: .83rem; color: var(--ink-soft); }
+  .kx-boas .selo b { font-weight: 640; color: var(--ink); }
+  .kx-boas .selo i { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
+
+  /* ── seções ── */
+  .kx-boas section { padding: clamp(44px, 7vw, 84px) 0 0; }
+  .kx-boas .cabeca h2 { font-size: clamp(1.5rem, 3.2vw, 2.1rem); font-weight: 650; letter-spacing: -.025em; margin-top: 14px; line-height: 1.12; text-wrap: balance; max-width: 24ch; }
+  .kx-boas .cabeca p { margin-top: 14px; font-size: 1rem; line-height: 1.65; color: var(--ink-soft); max-width: 66ch; }
+
+  /* ── pirâmide ── */
+  .kx-boas .piramide { margin-top: 36px; display: grid; gap: 12px; }
+  .kx-boas .camada { display: grid; grid-template-columns: 150px 1fr; gap: 22px; align-items: center; background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--nivel, var(--line-strong)); border-radius: 14px; padding: 20px 24px; }
+  .kx-boas .camada .quem { font-weight: 640; font-size: 1rem; }
+  .kx-boas .camada .quem span { display: block; font-weight: 400; font-size: .78rem; color: var(--muted); margin-top: 3px; }
+  .kx-boas .camada .leitura { font-size: .92rem; color: var(--ink-soft); }
+  .kx-boas .camada .leitura b { color: var(--ink); font-weight: 620; }
+  .kx-boas .camada .setas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .kx-boas .seta { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 5px 12px; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 650; }
+  .kx-boas .s-cima { background: var(--exec-soft); color: var(--exec); }
+  .kx-boas .s-baixo { background: var(--time-soft); color: var(--time); }
+  .kx-boas .c-exec { --nivel: var(--exec); }
+  .kx-boas .c-lider { --nivel: var(--brand); }
+  .kx-boas .c-time { --nivel: var(--time); }
+  @media (max-width: 720px) { .kx-boas .camada { grid-template-columns: 1fr; gap: 12px; } }
+
+  /* ── o que é medido ── */
+  .kx-boas .instrumentos { display: grid; gap: 16px; margin-top: 32px; grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 900px) { .kx-boas .instrumentos { grid-template-columns: 1fr; } }
+  .kx-boas .inst { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px 26px 28px; display: flex; flex-direction: column; }
+  .kx-boas .inst .rot { font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; padding: 5px 11px; border-radius: 999px; align-self: flex-start; }
+  .kx-boas .r-lider { background: var(--brand-soft); color: var(--brand-deep); }
+  .kx-boas .r-exec { background: var(--exec-soft); color: var(--exec); }
+  .kx-boas .r-time { background: var(--time-soft); color: var(--time); }
+  .kx-boas .inst h3 { font-size: 1.12rem; font-weight: 650; margin-top: 16px; letter-spacing: -.015em; }
+  .kx-boas .inst .desc { margin-top: 10px; font-size: .92rem; line-height: 1.6; color: var(--ink-soft); }
+  .kx-boas .inst .dims { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); display: grid; gap: 9px; }
+  .kx-boas .inst .dims .t { font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 650; }
+  .kx-boas .inst .dims li { display: flex; gap: 10px; font-size: .88rem; color: var(--ink-soft); line-height: 1.45; }
+  .kx-boas .inst .dims li::before { content: ""; flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--brand); opacity: .55; margin-top: 8px; }
+  .kx-boas .inst .quemresponde { margin-top: 20px; font-size: .84rem; line-height: 1.55; color: var(--muted); }
+  .kx-boas .inst .quemresponde b { color: var(--ink-soft); font-weight: 620; }
+
+  /* ── importância ── */
+  .kx-boas .valor { margin-top: 32px; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 760px) { .kx-boas .valor { grid-template-columns: 1fr; } }
+  .kx-boas .valor > div { background: var(--card); padding: 26px 28px; }
+  .kx-boas .valor h3 { font-size: 1rem; font-weight: 640; }
+  .kx-boas .valor p { margin-top: 9px; font-size: .92rem; line-height: 1.6; color: var(--ink-soft); }
+
+  /* ── passos ── */
+  .kx-boas .passos { margin-top: 32px; display: grid; gap: 14px; }
+  .kx-boas .passo { display: grid; grid-template-columns: 54px 1fr; gap: 20px; align-items: start; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; }
+  .kx-boas .passo .n { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand-deep); font-weight: 700; font-size: 1rem; }
+  .kx-boas .passo h3 { font-size: 1.02rem; font-weight: 640; }
+  .kx-boas .passo p { margin-top: 7px; font-size: .92rem; line-height: 1.6; color: var(--ink-soft); max-width: 72ch; }
+
+  /* ── cuidados ── */
+  .kx-boas .cuidados { margin-top: 32px; display: grid; gap: 12px; grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 900px) { .kx-boas .cuidados { grid-template-columns: 1fr; } }
+  .kx-boas .cuidado { border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; background: var(--surface); }
+  .kx-boas .cuidado h3 { font-size: .95rem; font-weight: 640; }
+  .kx-boas .cuidado p { margin-top: 8px; font-size: .87rem; line-height: 1.6; color: var(--ink-soft); }
+
+  /* ── entrega ── */
+  .kx-boas .entregas { margin-top: 32px; display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 900px) { .kx-boas .entregas { grid-template-columns: 1fr; } }
+  .kx-boas .entrega { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .kx-boas .entrega .tela { height: 108px; background: linear-gradient(160deg, var(--surface), var(--card)); border-bottom: 1px solid var(--line); padding: 16px 18px; display: grid; gap: 7px; align-content: center; }
+  .kx-boas .entrega .barra { height: 8px; border-radius: 99px; background: var(--line-strong); }
+  .kx-boas .entrega .barra.a { width: 82%; background: var(--brand); }
+  .kx-boas .entrega .barra.b { width: 54%; background: var(--exec); }
+  .kx-boas .entrega .barra.c { width: 68%; background: var(--time); }
+  .kx-boas .entrega .txt { padding: 20px 22px 24px; }
+  .kx-boas .entrega h3 { font-size: 1rem; font-weight: 640; }
+  .kx-boas .entrega p { margin-top: 8px; font-size: .88rem; line-height: 1.6; color: var(--ink-soft); }
+
+  /* ── fechamento ── */
+  .kx-boas .final { margin: clamp(56px, 8vw, 96px) 0 0; border-radius: var(--radius); background: linear-gradient(135deg, var(--brand-deep), var(--brand)); color: #fff; padding: clamp(36px, 6vw, 64px) var(--pad); text-align: center; }
+  .kx-boas .final h2 { font-size: clamp(1.6rem, 3.6vw, 2.4rem); font-weight: 650; letter-spacing: -.025em; line-height: 1.1; margin: 14px auto 0; max-width: 22ch; text-wrap: balance; }
+  .kx-boas .final p { margin: 16px auto 0; max-width: 56ch; font-size: 1rem; line-height: 1.65; opacity: .92; }
+  .kx-boas .final .olho { color: rgba(255,255,255,.8); }
+  .kx-boas .final .olho::before { background: rgba(255,255,255,.6); }
+  .kx-boas .final .btn { margin-top: 32px; }
+
+  .kx-boas footer { padding: 34px 0 56px; text-align: center; font-size: .78rem; color: var(--faint); }
+  @media (prefers-reduced-motion: reduce) { .kx-boas * { transition: none !important; } }
