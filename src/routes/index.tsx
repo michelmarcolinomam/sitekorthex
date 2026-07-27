@@ -509,8 +509,8 @@ function Michel() {
               Michel Marcolino · Fundador
             </p>
             <h2 className="text-display text-[clamp(2.5rem,5vw,5rem)] text-foreground leading-[1]">
-              Trabalho com pessoas que <span className="italic text-primary">já não cabem</span> no
-              próprio script.
+              Trabalho com líderes que <span className="italic text-primary">já não cabem mais</span>{" "}
+              numa versão mediana.
             </h2>
             <div className="mt-10 space-y-6 text-foreground/75 text-base leading-relaxed">
               <p>
