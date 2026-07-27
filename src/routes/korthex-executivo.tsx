@@ -438,7 +438,7 @@ function KorthexExecutivoPage() {
           <h2 className="mt-12 text-display text-[clamp(3rem,9vw,10rem)] text-foreground leading-[0.95]">
             Não vendemos pressa.
             <br />
-            <span className="italic text-primary">Vendemos maturidade.</span>
+            <span className="italic text-primary">Modelamos maturidade.</span>
           </h2>
           <div className="mt-16 grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
             <div className="md:col-span-5">
