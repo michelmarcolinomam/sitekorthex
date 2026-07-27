@@ -89,6 +89,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      // Favicon. O .ico primeiro porque é o palpite padrão do navegador e o que
+      // atende quem já tem o site favoritado; o .svg é o que os navegadores
+      // atuais preferem. Arquivos em public/, servidos da raiz.
+      { rel: "icon", href: "/favicon.ico", sizes: "48x48 32x32 16x16" },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
+      { rel: "manifest", href: "/site.webmanifest" },
     ],
     scripts: [
       {
