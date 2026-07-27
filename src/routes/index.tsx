@@ -135,16 +135,16 @@ function Hero() {
       <div className="absolute inset-0 z-10 flex items-center px-6 md:px-12 pt-20">
         <div className="mx-auto max-w-[1400px] w-full">
           <h1
-            className="text-display text-foreground max-w-[16ch]"
+            className="text-display text-foreground max-w-[24ch]"
             style={{
-              fontSize: "clamp(2.25rem, 5.4vw, 5.5rem)",
+              fontSize: "clamp(2rem, 4.6vw, 4.75rem)",
               letterSpacing: "-0.045em",
               lineHeight: 0.95,
             }}
           >
-            Ninguém coloca<br />
-            no mundo aquilo<br />
-            que não tem{" "}
+            Nenhum líder coloca<br />
+            na companhia aquilo que<br />
+            não tem{" "}
             <span className="italic font-serif normal-case text-primary">
               dentro de si.
             </span>
