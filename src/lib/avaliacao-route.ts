@@ -81,18 +81,24 @@ async function gravaResposta(
 }
 
 /**
- * A prévia do link do questionário no WhatsApp.
+ * O <head> que os protótipos não têm.
  *
- * É o link de MAIOR volume da série — cada pessoa da equipe recebe um — e era
- * o que aparecia pior: os protótipos começam direto no <title>, sem <head>,
- * então não havia meta tag nenhuma. Vai por PREFIXO, e não por replace, porque
- * não existe <head> para substituir; o navegador monta o head implícito.
+ * Eles começam direto no <title>, sem <head> nem <html>, então não havia meta
+ * tag nenhuma. Vai por PREFIXO, e não por replace, porque não existe <head>
+ * para substituir; o navegador monta o head implícito. Fica aqui, no servidor,
+ * para os HTMLs aprovados continuarem intocados.
  *
- * O texto é diferente do link do cliente de propósito: quem abre isto não é
- * quem contratou, é alguém convidado a avaliar quem está acima dele. A
- * primeira coisa que essa pessoa precisa ler é que é anônimo.
+ * **A viewport é a tag que mais importa.** Sem ela o celular renderiza a
+ * página a 980px e reduz tudo a ~40%, e o `@media (max-width:560px)` que os
+ * protótipos já trazem nunca dispara — o design de celular existia e estava
+ * inalcançável. O questionário é respondido majoritariamente no celular.
+ *
+ * O texto da prévia é diferente do link do cliente de propósito: quem abre
+ * isto não é quem contratou, é alguém convidado a avaliar quem está acima
+ * dele. A primeira coisa que essa pessoa precisa ler é que é anônimo.
  */
 const META_PREVIA = [
+  '<meta name="viewport" content="width=device-width,initial-scale=1">',
   '<meta property="og:type" content="website">',
   '<meta property="og:title" content="Sua resposta no diagnóstico — Korthex">',
   '<meta property="og:description" content="Anônimo, sem identificação de quem responde. Leva alguns minutos e ajuda a empresa a enxergar o que ninguém aponta.">',
